@@ -5,7 +5,7 @@ import { ApiError } from '../utils/ApiError.js';
 
 export const documentService = {
   async getTemplates() {
-    return DOCUMENT_TEMPLATES;
+    return Object.values(DOCUMENT_TEMPLATES);
   },
 
   async getDashboardStats(userId) {
@@ -71,12 +71,14 @@ export const documentService = {
     });
 
     return {
-      id: newDoc.id,
-      title: newDoc.title,
-      type: newDoc.type,
-      status: 'READY',
-      content: generatedContent,
-      version: 1
+      document: {
+        id: newDoc.id,
+        title: newDoc.title,
+        type: newDoc.type,
+        status: 'READY',
+        content: generatedContent,
+        version: 1
+      }
     };
   },
 

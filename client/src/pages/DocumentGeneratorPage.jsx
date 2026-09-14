@@ -41,7 +41,7 @@ export const DocumentGeneratorPage = () => {
     const loadTemplates = async () => {
       try {
         const tmpls = await api.getTemplates();
-        setTemplates(tmpls);
+        setTemplates(Array.isArray(tmpls) ? tmpls : Object.values(tmpls || {}));
       } catch (e) {
         console.error('Failed to load templates:', e);
       } finally {
@@ -69,7 +69,12 @@ export const DocumentGeneratorPage = () => {
 
     try {
       const result = await api.generateDocument(selectedType.id, docTitle, answers);
-      navigate(`/documents/${result.document.id}`);
+      const docId = result?.document?.id || result?.id;
+      if (docId) {
+        navigate(`/documents/${docId}`);
+      } else {
+        throw new Error('Document was generated, but document ID was not returned.');
+      }
     } catch (err) {
       setError(err.message || 'Failed to generate legal document draft.');
       setStep(2);
