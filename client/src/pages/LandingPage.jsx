@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  FileText, 
-  FolderLock, 
-  Bot, 
-  Users, 
-  ShieldCheck, 
-  ArrowRight, 
-  CheckCircle2, 
+import {
+  FileText,
+  FolderLock,
+  Bot,
+  Users,
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle2,
   Sparkles,
   Scale,
   Lock,
@@ -50,7 +50,7 @@ export const LandingPage = () => {
         {/* HERO SECTION (Matches Figma) */}
         <section className="relative pt-16 pb-20 overflow-hidden border-b border-[#EAE3D2]">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-7 relative z-10">
-            
+
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FEF7E0] border border-[#EAE3D2] text-[#B06000] text-xs font-bold shadow-sm">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Next-Generation LegalTech Platform for India</span>
@@ -116,51 +116,73 @@ export const LandingPage = () => {
         {/* FEATURES SECTION (Matches Figma) */}
         <section className="py-20 bg-white border-b border-[#EAE3D2]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            
+
             <div className="text-center max-w-2xl mx-auto space-y-2">
               <span className="text-[11px] font-extrabold text-[#E07A5F] uppercase tracking-widest">FEATURES</span>
               <h2 className="font-serif-legal text-3xl font-bold text-[#2D1C13]">Everything you need for Modern Legal Work</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              
-              {/* Feature 1 */}
-              <div className="figma-card figma-card-hover p-7 rounded-2xl space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-[#FEF7E0] text-[#B06000] flex items-center justify-center border border-[#EAE3D2]">
-                  <FileText className="w-6 h-6" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+              {/* Feature 1: AI Document Generator */}
+              <div className="figma-card figma-card-hover p-6 rounded-2xl flex flex-col justify-between space-y-4">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#FEF7E0] text-[#B06000] flex items-center justify-center border border-[#EAE3D2]">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-serif-legal text-xl font-bold text-[#2D1C13]">AI Document Generator</h3>
+                  <p className="text-xs text-[#70665F] leading-relaxed">
+                    Guided human-language questionnaires for NDAs, rental agreements, employment contracts, and freelance service agreements.
+                  </p>
                 </div>
-                <h3 className="font-serif-legal text-xl font-bold text-[#2D1C13]">AI Document Generator</h3>
-                <p className="text-xs text-[#70665F] leading-relaxed">
-                  Guided human-language questionnaires for NDAs, rental agreements, employment contracts, and freelance service agreements.
-                </p>
                 <Link to="/documents/new" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E07A5F] hover:underline pt-2">
                   <span>Create Contract</span> <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
-              {/* Feature 2 */}
-              <div className="figma-card figma-card-hover p-7 rounded-2xl space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-[#E6F4EA] text-[#137333] flex items-center justify-center border border-[#EAE3D2]">
-                  <Bot className="w-6 h-6" />
+              {/* Feature 2: Grounded RAG Assistant */}
+              <div className="figma-card figma-card-hover p-6 rounded-2xl flex flex-col justify-between space-y-4">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#E6F4EA] text-[#137333] flex items-center justify-center border border-[#EAE3D2]">
+                    <Bot className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-serif-legal text-xl font-bold text-[#2D1C13]">Grounded RAG Assistant</h3>
+                  <p className="text-xs text-[#70665F] leading-relaxed">
+                    Ask document-specific questions to extract exact clause references, simple explanations, and statutory citations.
+                  </p>
                 </div>
-                <h3 className="font-serif-legal text-xl font-bold text-[#2D1C13]">Grounded RAG Assistant</h3>
-                <p className="text-xs text-[#70665F] leading-relaxed">
-                  Ask document-specific questions to extract exact clause references, simple explanations, and statutory citations.
-                </p>
                 <Link to="/assistant" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E07A5F] hover:underline pt-2">
                   <span>Ask AI Assistant</span> <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
-              {/* Feature 3 */}
-              <div className="figma-card figma-card-hover p-7 rounded-2xl space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-[#F4F1EA] text-[#2D1C13] flex items-center justify-center border border-[#EAE3D2]">
-                  <Users className="w-6 h-6" />
+              {/* Feature 3: Secure Digital Vault */}
+              <div className="figma-card figma-card-hover p-6 rounded-2xl flex flex-col justify-between space-y-4">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#FEF7E0] text-[#E07A5F] flex items-center justify-center border border-[#EAE3D2]">
+                    <FolderLock className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-serif-legal text-xl font-bold text-[#2D1C13]">Secure Digital Vault</h3>
+                  <p className="text-xs text-[#70665F] leading-relaxed">
+                    Safely store, organize, and upload confidential legal files with user authorization, version tracking, and vector indexing.
+                  </p>
                 </div>
-                <h3 className="font-serif-legal text-xl font-bold text-[#2D1C13]">Verified Advocates</h3>
-                <p className="text-xs text-[#70665F] leading-relaxed">
-                  Discover verified Indian legal practitioners, inspect detailed profiles, and request one-on-one consultation sessions.
-                </p>
+                <Link to="/vault" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E07A5F] hover:underline pt-2">
+                  <span>Open Digital Vault</span> <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              {/* Feature 4: Verified Advocates */}
+              <div className="figma-card figma-card-hover p-6 rounded-2xl flex flex-col justify-between space-y-4">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#F4F1EA] text-[#2D1C13] flex items-center justify-center border border-[#EAE3D2]">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-serif-legal text-xl font-bold text-[#2D1C13]">Verified Advocates</h3>
+                  <p className="text-xs text-[#70665F] leading-relaxed">
+                    Discover verified Indian legal practitioners, inspect detailed profiles, and request one-on-one consultation sessions.
+                  </p>
+                </div>
                 <Link to="/lawyers" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E07A5F] hover:underline pt-2">
                   <span>Browse Marketplace</span> <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
@@ -173,14 +195,14 @@ export const LandingPage = () => {
         {/* WHY US SECTION (Matches Figma) */}
         <section className="py-20 bg-[#FAF8F5] border-b border-[#EAE3D2]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            
+
             <div className="text-center max-w-2xl mx-auto space-y-2">
               <span className="text-[11px] font-extrabold text-[#E07A5F] uppercase tracking-widest">WHY US</span>
               <h2 className="font-serif-legal text-3xl font-bold text-[#2D1C13]">Why Choose Lexora AI</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
+
               <div className="bg-white border border-[#EAE3D2] rounded-2xl p-6 space-y-3 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-[#FEF7E0] text-[#B06000] flex items-center justify-center font-bold text-xs">
@@ -224,14 +246,14 @@ export const LandingPage = () => {
         {/* TESTIMONIALS SECTION (Matches Figma) */}
         <section className="py-20 bg-white border-b border-[#EAE3D2]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            
+
             <div className="text-center max-w-2xl mx-auto space-y-2">
               <span className="text-[11px] font-extrabold text-[#E07A5F] uppercase tracking-widest">TESTIMONIALS</span>
               <h2 className="font-serif-legal text-3xl font-bold text-[#2D1C13]">What Our Users Say</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
+
               <div className="bg-[#FAF8F5] border border-[#EAE3D2] p-6 rounded-2xl space-y-4">
                 <div className="flex text-amber-500 gap-1">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
@@ -302,7 +324,7 @@ export const LandingPage = () => {
         {/* FAQ ACCORDION (Matches Figma) */}
         <section className="py-20 bg-[#FAF8F5]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-            
+
             <div className="text-center space-y-2">
               <span className="text-[11px] font-extrabold text-[#E07A5F] uppercase tracking-widest">FAQ</span>
               <h2 className="font-serif-legal text-3xl font-bold text-[#2D1C13]">Frequently Asked Questions</h2>
