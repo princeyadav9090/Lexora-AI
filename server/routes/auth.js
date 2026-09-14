@@ -4,10 +4,11 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { cognitoAuth } from '../config/cognito.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { env } from '../config/env.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'lexora_ai_super_secret_jwt_key_2026_india';
+const JWT_SECRET = env.JWT_SECRET;
 
 // Register
 router.post('/register', async (req, res) => {

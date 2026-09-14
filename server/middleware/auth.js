@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { env } from '../config/env.js';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'lexora_ai_super_secret_jwt_key_2026_india';
+const JWT_SECRET = env.JWT_SECRET;
 
 export const authenticateToken = async (req, res, next) => {
   try {

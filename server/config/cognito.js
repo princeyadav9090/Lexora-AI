@@ -1,10 +1,9 @@
 import { CognitoIdentityProviderClient, SignUpCommand, InitiateAuthCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
-import dotenv from 'dotenv';
-dotenv.config();
+import { env } from './env.js';
 
-const region = process.env.AWS_REGION || 'ap-south-1';
-const userPoolId = process.env.COGNITO_USER_POOL_ID;
-const clientId = process.env.COGNITO_CLIENT_ID;
+const region = env.AWS_REGION;
+const userPoolId = env.COGNITO_USER_POOL_ID;
+const clientId = env.COGNITO_CLIENT_ID;
 
 const isCognitoConfigured = Boolean(userPoolId && clientId);
 
