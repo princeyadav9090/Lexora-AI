@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 export const env = {
@@ -7,7 +6,7 @@ export const env = {
   JWT_SECRET: process.env.JWT_SECRET || 'lexora_ai_jwt_secret_key_change_in_production',
   DATABASE_URL: process.env.DATABASE_URL || 'file:./dev.db',
   
-  // AWS Cognito Credentials
+  // AWS Cognito Configuration
   AWS_REGION: process.env.AWS_REGION || 'ap-south-1',
   COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID || '',
   COGNITO_CLIENT_ID: process.env.COGNITO_CLIENT_ID || '',

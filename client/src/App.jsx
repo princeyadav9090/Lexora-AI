@@ -54,6 +54,7 @@ export default function App() {
           {/* Authenticated Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/documents/new" element={<ProtectedRoute><DocumentGeneratorPage /></ProtectedRoute>} />
+          <Route path="/documents/generate" element={<ProtectedRoute><DocumentGeneratorPage /></ProtectedRoute>} />
           <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetailPage /></ProtectedRoute>} />
           <Route path="/vault" element={<ProtectedRoute><LegalVaultPage /></ProtectedRoute>} />
           <Route path="/assistant" element={<ProtectedRoute><AIAssistantPage /></ProtectedRoute>} />

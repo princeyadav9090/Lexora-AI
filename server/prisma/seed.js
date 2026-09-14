@@ -98,7 +98,7 @@ async function main() {
       data: {
         email: l.email,
         name: l.name,
-        passwordHash,
+        passwordHash: userPasswordHash,
         role: 'LAWYER',
         status: 'ACTIVE'
       }

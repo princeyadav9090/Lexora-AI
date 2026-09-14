@@ -1,33 +1,28 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/db.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { env } from '../config/env.js';
 
-const prisma = new PrismaClient();
-const geminiApiKey = process.env.GEMINI_API_KEY;
+const geminiApiKey = env.GEMINI_API_KEY;
 let genAI = null;
 if (geminiApiKey) {
   genAI = new GoogleGenerativeAI(geminiApiKey);
 }
 
-// Clause / Section Chunker
 export const processAndChunkDocument = async (documentId, fullText) => {
-  // Delete existing chunks
   await prisma.documentChunk.deleteMany({ where: { documentId } });
 
-  // Clean and split text into structural paragraphs/clauses
   const rawSections = fullText
     .split(/\n\s*\n|(?=^#{1,4}\s)|(?=^\d+\.\s+[A-Z])|(?=^[A-Z\s]{4,}:)/m)
     .map(s => s.trim())
     .filter(s => s.length > 20);
 
   const chunksToInsert = rawSections.map((sectionText, index) => {
-    // Attempt section title extraction
     let sectionTitle = `Section ${index + 1}`;
     const titleMatch = sectionText.match(/^(?:#+\s*)?([^\n\r]+)/);
     if (titleMatch && titleMatch[1]) {
       sectionTitle = titleMatch[1].replace(/[*#]/g, '').trim().slice(0, 60);
     }
 
-    // Estimate page number (assuming ~2500 chars per page)
     const pageNum = Math.floor((index * 300) / 2500) + 1;
 
     return {
@@ -43,7 +38,6 @@ export const processAndChunkDocument = async (documentId, fullText) => {
     await prisma.documentChunk.createMany({ data: chunksToInsert });
   }
 
-  // Update status to READY
   await prisma.document.update({
     where: { id: documentId },
     data: { status: 'READY' }
@@ -52,7 +46,6 @@ export const processAndChunkDocument = async (documentId, fullText) => {
   return chunksToInsert.length;
 };
 
-// TF-IDF / Term matching similarity calculation
 const computeRelevanceScore = (query, text) => {
   const queryTerms = query.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(t => t.length > 2);
   const textLower = text.toLowerCase();
@@ -68,9 +61,7 @@ const computeRelevanceScore = (query, text) => {
   return score;
 };
 
-// Grounded Document Q&A RAG
 export const queryDocumentRAG = async (userId, documentId, userQuestion) => {
-  // Authorization check
   const document = await prisma.document.findFirst({
     where: { id: documentId, userId },
     include: { chunks: true }
@@ -89,7 +80,6 @@ export const queryDocumentRAG = async (userId, documentId, userQuestion) => {
     };
   }
 
-  // Rank chunks by relevance
   const scoredChunks = document.chunks.map(chunk => ({
     ...chunk,
     score: computeRelevanceScore(userQuestion, chunk.content)
@@ -97,7 +87,6 @@ export const queryDocumentRAG = async (userId, documentId, userQuestion) => {
 
   const topChunk = scoredChunks[0];
 
-  // Insufficient evidence guardrail
   if (!topChunk || topChunk.score < 1) {
     return {
       answer: "I couldn't find enough information in the selected document to answer that reliably.",
@@ -107,7 +96,6 @@ export const queryDocumentRAG = async (userId, documentId, userQuestion) => {
     };
   }
 
-  // If Gemini API is available, generate grounded LLM answer
   if (genAI) {
     try {
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -145,7 +133,6 @@ Provide a response in JSON format:
     }
   }
 
-  // Deterministic local grounded response
   return {
     answer: `Based on ${topChunk.section || 'the contract clauses'}, here is the relevant term: "${topChunk.content.slice(0, 180)}..."`,
     explanation: `This clause specifies the obligations and rules regarding "${userQuestion}".`,
@@ -154,11 +141,9 @@ Provide a response in JSON format:
   };
 };
 
-// General Legal Educational QA
 export const queryGeneralLegalAI = async (userQuestion) => {
   const qLower = userQuestion.toLowerCase();
 
-  // Knowledge base lookup for common legal questions
   if (qLower.includes('nda') || qLower.includes('non-disclosure')) {
     return {
       answer: "A Non-Disclosure Agreement (NDA) is a legally binding contract that establishes a confidential relationship between parties to protect proprietary information, trade secrets, or sensitive business data from public disclosure.",
@@ -195,7 +180,6 @@ export const queryGeneralLegalAI = async (userQuestion) => {
     };
   }
 
-  // Gemini API fallback for general legal queries
   if (genAI) {
     try {
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -231,7 +215,6 @@ JSON response format:
   };
 };
 
-// Clause Explainer
 export const explainClause = async (clauseText) => {
   return {
     originalClause: clauseText,
