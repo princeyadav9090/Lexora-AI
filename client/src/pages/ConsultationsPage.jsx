@@ -33,7 +33,7 @@ export const ConsultationsPage = () => {
       <div className="flex-1 flex">
         <Sidebar />
 
-        <main className="flex-1 p-6 lg:p-8 space-y-6 max-w-6xl overflow-y-auto">
+        <main className="flex-1 p-6 lg:p-8 space-y-6 max-w-7xl overflow-y-auto">
           
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#EAE3D2] pb-5 gap-4">
