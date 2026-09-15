@@ -82,3 +82,7 @@ yarn-error.log*
 out/
 .vite/
 
+
+# Planning Docs
+planning_docs/
+planning_docs

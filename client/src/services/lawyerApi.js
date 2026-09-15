@@ -17,6 +17,7 @@ export const lawyerApi = {
   },
 
   async bookConsultation(lawyerId, date, time, issue) {
+    sessionStorage.removeItem('lexora_consultations'); // Invalidate cache
     return fetchClient('/consultations', {
       method: 'POST',
       body: JSON.stringify({ lawyerId, date, time, issue })
@@ -24,7 +25,12 @@ export const lawyerApi = {
   },
 
   async getConsultations() {
+    const cached = sessionStorage.getItem('lexora_consultations');
+    if (cached) return JSON.parse(cached);
+
     const res = await fetchClient('/consultations');
-    return res.consultations || res;
+    const consultations = res.consultations || res;
+    sessionStorage.setItem('lexora_consultations', JSON.stringify(consultations));
+    return consultations;
   }
 };

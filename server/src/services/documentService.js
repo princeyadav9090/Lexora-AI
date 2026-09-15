@@ -1,11 +1,11 @@
 import prisma from '../config/db.js';
-import { generateLegalDocument, DOCUMENT_TEMPLATES } from './documentGenerator.js';
+import { generateLegalDocument } from './documentGenerator.js';
 import { processAndChunkDocument } from './ragService.js';
 import { ApiError } from '../utils/ApiError.js';
 
 export const documentService = {
   async getTemplates() {
-    return Object.values(DOCUMENT_TEMPLATES);
+    return [];
   },
 
   async getDashboardStats(userId) {
@@ -30,19 +30,19 @@ export const documentService = {
     };
   },
 
-  async generateDocument(userId, { documentType, title, answers }) {
-    if (!documentType || !title || !answers) {
-      throw new ApiError(400, 'Document type, title, and form answers are required.');
+  async generateDocument(userId, { title, prompt, jurisdiction = 'IN' }) {
+    if (!title || !prompt) {
+      throw new ApiError(400, 'Document title and prompt are required.');
     }
 
-    const generatedContent = generateLegalDocument(documentType, answers);
+    const generatedContent = await generateLegalDocument(prompt, jurisdiction);
 
     const newDoc = await prisma.document.create({
       data: {
         userId,
         title,
-        type: documentType,
-        jurisdiction: 'IN',
+        type: 'CUSTOM',
+        jurisdiction: jurisdiction,
         status: 'PROCESSING',
         fileType: 'TXT',
         currentVersion: 1
@@ -54,9 +54,9 @@ export const documentService = {
         documentId: newDoc.id,
         version: 1,
         content: generatedContent,
-        structuredData: JSON.stringify(answers),
+        structuredData: JSON.stringify({ prompt, jurisdiction }),
         createdById: userId,
-        changeLog: 'AI Initial Guided Generation'
+        changeLog: 'AI Initial Prompt Generation'
       }
     });
 
@@ -66,7 +66,7 @@ export const documentService = {
       data: {
         userId,
         action: 'DOCUMENT_GENERATED',
-        details: `Generated ${documentType} document titled "${title}"`
+        details: `Generated CUSTOM document titled "${title}" from prompt`
       }
     });
 
@@ -89,7 +89,13 @@ export const documentService = {
       include: {
         versions: {
           orderBy: { version: 'desc' },
-          take: 1
+          take: 1,
+          select: {
+            id: true,
+            version: true,
+            createdAt: true,
+            isLocked: true
+          }
         }
       }
     });

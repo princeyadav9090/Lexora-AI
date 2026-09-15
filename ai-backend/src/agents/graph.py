@@ -43,14 +43,20 @@ Conversation History:
     print("Junior Lawyer analyzing case facts...")
     raw_result = structured_llm.invoke(prompt)
     
-    # Handle langchain-google-genai returning list of tool call dicts instead of Pydantic object
+    # Handle langchain returning list of tool call dicts or plain dicts instead of Pydantic object
     if isinstance(raw_result, list) and len(raw_result) > 0:
-        if isinstance(raw_result[0], dict) and 'args' in raw_result[0]:
-            result = IntakeAnalysis(**raw_result[0]['args'])
+        if isinstance(raw_result[0], dict):
+            if 'args' in raw_result[0]:
+                result = IntakeAnalysis(**raw_result[0]['args'])
+            else:
+                result = IntakeAnalysis(**raw_result[0])
         else:
             result = raw_result[0]
-    elif isinstance(raw_result, dict) and 'args' in raw_result:
-        result = IntakeAnalysis(**raw_result['args'])
+    elif isinstance(raw_result, dict):
+        if 'args' in raw_result:
+            result = IntakeAnalysis(**raw_result['args'])
+        else:
+            result = IntakeAnalysis(**raw_result)
     else:
         result = raw_result
         
