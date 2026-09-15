@@ -61,7 +61,7 @@ export const LandingPage = () => {
             </h1>
 
             <p className="text-sm sm:text-base text-[#70665F] max-w-2xl mx-auto leading-relaxed">
-              Got a property dispute? Cheque bounce? Tenant trouble? Ask in plain English or Hindi. Get clear answers with the law cited. Free.
+              Draft airtight contracts, get grounded answers cited under Indian law, and connect with verified advocates — all in one unified platform.
             </p>
 
             {/* Figma-matching Query Bar */}
@@ -72,7 +72,7 @@ export const LandingPage = () => {
                   type="text"
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
-                  placeholder="+ Type your legal query or contract question..."
+                  placeholder="Type your legal query or contract question..."
                   className="flex-1 bg-transparent px-3 py-2 text-xs font-semibold text-[#2D1C13] placeholder-[#70665F] focus:outline-none"
                 />
                 <button
