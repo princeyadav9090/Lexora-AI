@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { generateLegalDocument } from '../services/documentGenerator.js';
 import { processAndChunkDocument } from '../services/ragService.js';
+import { env } from '../config/env.js';
 
 const prisma = new PrismaClient();
 
@@ -19,14 +20,15 @@ async function main() {
   await prisma.lawyerProfile.deleteMany();
   await prisma.user.deleteMany();
 
-  const passwordHash = await bcrypt.hash('LexoraPass123!', 10);
+  const adminPasswordHash = await bcrypt.hash(env.SEED_ADMIN_PASSWORD, 10);
+  const userPasswordHash = await bcrypt.hash(env.SEED_USER_PASSWORD, 10);
 
   // 1. Create Admin User
   const admin = await prisma.user.create({
     data: {
-      email: 'admin@lexora.ai',
+      email: env.SEED_ADMIN_EMAIL,
       name: 'System Admin',
-      passwordHash,
+      passwordHash: adminPasswordHash,
       role: 'ADMIN',
       status: 'ACTIVE'
     }
@@ -37,7 +39,7 @@ async function main() {
     data: {
       email: 'user@lexora.ai',
       name: 'Rahul Mehta',
-      passwordHash,
+      passwordHash: userPasswordHash,
       role: 'USER',
       status: 'ACTIVE'
     }
@@ -96,7 +98,7 @@ async function main() {
       data: {
         email: l.email,
         name: l.name,
-        passwordHash,
+        passwordHash: userPasswordHash,
         role: 'LAWYER',
         status: 'ACTIVE'
       }
@@ -222,8 +224,8 @@ async function main() {
   });
 
   console.log('✅ Seeding completed successfully!');
-  console.log('   Admin login: admin@lexora.ai / LexoraPass123!');
-  console.log('   Demo user login: user@lexora.ai / LexoraPass123!');
+  console.log(`   Admin login: ${env.SEED_ADMIN_EMAIL} / ${env.SEED_ADMIN_PASSWORD}`);
+  console.log(`   Demo user login: user@lexora.ai / ${env.SEED_USER_PASSWORD}`);
 }
 
 main()
