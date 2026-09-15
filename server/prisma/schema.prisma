@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -17,11 +17,24 @@ model User {
   status        String         @default("ACTIVE")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  vaults        Vault[]
   documents     Document[]
   conversations Conversation[]
   consultations Consultation[] @relation("UserConsultations")
   lawyerProfile LawyerProfile?
   auditLogs     AuditLog[]
+}
+
+model Vault {
+  id            String         @id @default(uuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  documents     Document[]
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model LawyerProfile {
@@ -47,6 +60,8 @@ model Document {
   id             String            @id @default(uuid())
   userId         String
   user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaultId        String?
+  vault          Vault?            @relation(fields: [vaultId], references: [id], onDelete: SetNull)
   title          String
   type           String            // NDA, RENTAL_AGREEMENT, EMPLOYMENT_CONTRACT, FREELANCE_AGREEMENT, INTERNSHIP_AGREEMENT, UPLOADED
   jurisdiction   String            @default("IN")
@@ -91,6 +106,8 @@ model Conversation {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaultId     String?
+  vault       Vault?    @relation(fields: [vaultId], references: [id], onDelete: SetNull)
   documentId  String?
   document    Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
   title       String

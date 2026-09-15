@@ -18,6 +18,7 @@ import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
 import { LegalDisclaimer } from '../components/LegalDisclaimer';
 import { api } from '../services/api';
+import ReactMarkdown from 'react-markdown';
 
 export const AIAssistantPage = () => {
   const [searchParams] = useSearchParams();
@@ -268,19 +269,146 @@ export const AIAssistantPage = () => {
                       </div>
                     )}
 
-                    <p className="whitespace-pre-wrap font-sans">{msg.content}</p>
+                    {msg.sender === 'USER' ? (
+                      <p className="whitespace-pre-wrap font-sans">{msg.content}</p>
+                    ) : (
+                      <div className="prose prose-sm prose-p:leading-relaxed prose-a:text-[#E07A5F] max-w-none text-[#2D1C13] font-sans w-full">
+                        {(() => {
+                          try {
+                            const parsed = JSON.parse(msg.content);
+                            if (parsed.timeline && Array.isArray(parsed.timeline)) {
+                              return (
+                                <div className="mt-2 relative border-l-2 border-[#E07A5F] pl-6 py-2 space-y-6">
+                                  {parsed.timeline.map((event, idx) => (
+                                    <div key={idx} className="relative">
+                                      <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-[#E07A5F] border-4 border-white shadow-sm" />
+                                      <div className="bg-white border border-[#EAE3D2] rounded-xl p-4 shadow-sm">
+                                        <div className="flex flex-wrap items-center justify-between mb-2 gap-2">
+                                          <span className="text-xs font-bold text-[#2D1C13] bg-[#FEF7E0] px-2 py-1 rounded">
+                                            {event.date} {event.is_ambiguous && <span className="text-[#E07A5F] italic ml-1">(Estimated)</span>}
+                                          </span>
+                                          {event.limitation_warning && (
+                                            <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
+                                              <AlertCircle className="w-3 h-3" /> Time-Barred Warning (&gt;3 Yrs)
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-[#2D1C13] leading-relaxed mb-2">{event.description}</p>
+                                        {event.parties && event.parties.length > 0 && (
+                                          <div className="flex flex-wrap gap-1">
+                                            {event.parties.map((party, pIdx) => (
+                                              <span key={pIdx} className="text-[10px] font-medium text-[#70665F] bg-[#FAF8F5] border border-[#EAE3D2] px-1.5 py-0.5 rounded">
+                                                {party}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            }
+                            if (parsed.is_draft) {
+                              const handleDownloadDoc = () => {
+                                const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Lexora Draft</title></head><body>";
+                                const footer = "</body></html>";
+                                const sourceHTML = header + `<div style="font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5;">${parsed.draft.replace(/\n/g, '<br>')}</div>` + footer;
+                                const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+                                const fileDownload = document.createElement("a");
+                                document.body.appendChild(fileDownload);
+                                fileDownload.href = source;
+                                fileDownload.download = 'Lexora_Draft.doc';
+                                fileDownload.click();
+                                document.body.removeChild(fileDownload);
+                              };
 
-                    {/* Grounded RAG Citation Box */}
+                              return (
+                                <div className="mt-4 border border-[#EAE3D2] rounded-xl overflow-hidden shadow-sm bg-white">
+                                  <div className="bg-[#FAF8F5] border-b border-[#EAE3D2] px-4 py-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-[#2D1C13]">
+                                      <FileText className="w-4 h-4 text-[#E07A5F]" />
+                                      Legal Document Draft
+                                    </div>
+                                    <button
+                                      onClick={handleDownloadDoc}
+                                      className="px-3 py-1.5 bg-[#E07A5F] hover:bg-[#C85A32] text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+                                    >
+                                      Download .doc
+                                    </button>
+                                  </div>
+                                  <div className="p-6 bg-white overflow-y-auto max-h-96 text-[11px] leading-relaxed text-[#2D1C13] font-serif custom-scrollbar" style={{ whiteSpace: 'pre-wrap' }}>
+                                    {parsed.draft}
+                                  </div>
+                                </div>
+                              );
+                            }
+                          } catch (e) {
+                            // Fallback to markdown
+                          }
+                          return <ReactMarkdown>{msg.content}</ReactMarkdown>;
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Grounded RAG Citation Box & Advanced Citations */}
                     {msg.sender === 'AI' && msg.explanation && (
-                      <div className="mt-3 pt-3 border-t border-[#EAE3D2] space-y-2 bg-white p-3 rounded-xl border">
+                      <div className="mt-3 pt-3 border-t border-[#EAE3D2] space-y-3 bg-white p-4 rounded-xl border">
                         <div className="text-[11px] font-bold text-[#2D1C13]">
-                          <strong>Simple Explanation:</strong> {msg.explanation}
+                          <span className="text-[#E07A5F]">✓ Simple Explanation:</span> {msg.explanation}
                         </div>
-                        {msg.relevantClause && msg.relevantClause !== 'N/A' && (
-                          <div className="text-[11px] text-[#70665F] border-l-2 border-[#E07A5F] pl-2 italic">
-                            "{msg.relevantClause}"
-                          </div>
-                        )}
+                        
+                        {/* Try parsing advanced JSON citations */}
+                        {(() => {
+                          try {
+                            const parsed = JSON.parse(msg.sourceCitation);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                              return (
+                                <div className="space-y-2">
+                                  <div className="text-[10px] font-bold text-[#70665F] uppercase tracking-wider flex items-center gap-1">
+                                    <BookOpen className="w-3 h-3" /> Related Statutes & Precedents
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {parsed.map((cite, i) => (
+                                      <div key={i} className={`p-2.5 rounded-lg border ${cite.is_overruled ? 'bg-red-50 border-red-200' : 'bg-[#FAF8F5] border-[#EAE3D2]'}`}>
+                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                          <div className={`text-[10px] font-bold leading-tight ${cite.is_overruled ? 'text-red-700' : 'text-[#2D1C13]'}`}>
+                                            {cite.act_name || cite.case_name}
+                                          </div>
+                                          {cite.is_overruled ? (
+                                            <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+                                          ) : (
+                                            <ShieldCheck className="w-3 h-3 text-green-600 shrink-0" />
+                                          )}
+                                        </div>
+                                        {cite.section_number && <div className="text-[9px] text-[#E07A5F] font-semibold mb-1">Section {cite.section_number}</div>}
+                                        {cite.status && (
+                                          <div className={`text-[9px] font-bold mb-1 ${cite.is_overruled ? 'text-red-600' : 'text-green-600'}`}>
+                                            {cite.is_overruled ? `🚩 ${cite.status} (${cite.overruled_by})` : `✅ ${cite.status}`}
+                                          </div>
+                                        )}
+                                        {cite.text && <div className={`text-[10px] line-clamp-3 italic ${cite.is_overruled ? 'text-red-500/80' : 'text-[#70665F]'}`}>"{cite.text}"</div>}
+                                        {cite.summary && <div className={`text-[10px] line-clamp-3 italic ${cite.is_overruled ? 'text-red-500/80' : 'text-[#70665F]'}`}>"{cite.summary}"</div>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            }
+                          } catch (e) {
+                            // Fallback to legacy single string rendering if not JSON
+                          }
+                          
+                          // Fallback legacy display
+                          if (msg.relevantClause && msg.relevantClause !== 'N/A') {
+                            return (
+                              <div className="text-[11px] text-[#70665F] border-l-2 border-[#E07A5F] pl-2 italic">
+                                "{msg.relevantClause}"
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     )}
 

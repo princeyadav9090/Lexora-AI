@@ -1,52 +1,84 @@
-# Dependencies
-node_modules/
-client/node_modules/
+# Lexora-AI Planning Documents
+PROJECT_PLAN.md
+ARCHITECTURE.md
+ROADMAP.md
+REQUIREMENTS.md
+TECH_STACK.md
+DATA_STRATEGY.md
+LEGAL_DATA_SOURCES.md
+AI_ML_PLAN.md
+RAG_STRATEGY.md
+KNOWLEDGE_GRAPH_PLAN.md
+LANGGRAPH_WORKFLOW.md
+DOCUMENT_INTELLIGENCE.md
+EVIDENCE_ENGINE.md
+CITATION_VERIFICATION.md
+EVALUATION_PLAN.md
+SECURITY_AND_SAFETY.md
+COST_PLAN.md
+DEVELOPMENT_GUIDELINES.md
+DECISIONS.md
+phases/
 
-# Environment Variables & Secrets
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.env
+.venv
+env.bak/
+venv.bak/
+
+# Environment Variables
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
 
-# Local Databases (SQLite)
-*.db
-*.db-journal
-server/prisma/dev.db
-server/prisma/dev.db-journal
-dev.db
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# File Uploads & Local Storage
-uploads/
-server/uploads/
-server/storage/uploads/
-*.pdf
-!client/public/**/*.pdf
+# macOS
+.DS_Store
 
-# Build & Output Directories
+# Node
+node_modules/
 dist/
-client/dist/
 build/
-client/build/
-.next/
-out/
+.npm/
 
-# Logs & Debugging
+# Logs
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-# OS Files & IDE Configs
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-*.swp
-*.swo
+# Next.js/Vite
+.next/
+out/
+.vite/
 
-# Temporary Files
-scratch/
-server/test-db.js

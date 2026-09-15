@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth.js';
-import { queryDocumentRAG, queryGeneralLegalAI, explainClause } from '../services/ragService.js';
+import { queryDocumentRAG, queryGeneralLegalAI, explainClause, generateTimeline } from '../services/ragService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -83,12 +83,80 @@ router.post('/conversations/:id/messages', authenticateToken, async (req, res) =
       }
     });
 
-    // Execute Grounded RAG or General Legal AI depending on context mode
+    // Execute Grounded RAG, General Legal AI, Timeline Extractor, or Drafting Agent
     let aiResponse;
-    if (conversation.contextMode === 'DOCUMENT' && conversation.documentId) {
+    const isTimelineRequest = content.trim().startsWith('/timeline');
+    const isDraftRequest = content.trim().startsWith('/draft');
+
+    if (isTimelineRequest) {
+      const textToExtract = content.replace('/timeline', '').trim();
+      
+      // If user just typed /timeline without text, we can use the conversation history
+      let extractionSource = textToExtract;
+      if (!extractionSource) {
+        const history = await prisma.message.findMany({
+          where: { conversationId: conversation.id },
+          orderBy: { createdAt: 'asc' }
+        });
+        extractionSource = history.map(m => m.content).join('\n');
+      }
+
+      try {
+        const timelineData = await generateTimeline(extractionSource);
+        aiResponse = {
+          answer: `{"timeline": ${JSON.stringify(timelineData)}}`,
+          explanation: "Automated Timeline Extractor",
+          relevantClause: "N/A",
+          sourceCitation: "Lexora AI Timeline Tool"
+        };
+      } catch (err) {
+        aiResponse = {
+          answer: "Failed to generate timeline. Please try again.",
+          explanation: "Error connecting to AI Engine.",
+          relevantClause: "N/A",
+          sourceCitation: "System Error"
+        };
+      }
+    } else if (isDraftRequest) {
+      const promptToDraft = content.replace('/draft', '').trim();
+      if (!promptToDraft) {
+        return res.status(400).json({
+          error: { code: 'EMPTY_DRAFT_PROMPT', message: 'Please provide instructions for the draft.' }
+        });
+      }
+
+      try {
+        const draftData = await draftDocument(promptToDraft);
+        aiResponse = {
+          answer: `{"is_draft": true, "draft": ${JSON.stringify(draftData.draft)}, "template_used": "${draftData.template_used}"}`,
+          explanation: "Lexora AI Drafting Agent",
+          relevantClause: "N/A",
+          sourceCitation: `Grounded on: ${draftData.template_used}`
+        };
+      } catch (err) {
+        aiResponse = {
+          answer: "Failed to generate document draft. Please try again.",
+          explanation: "Error connecting to AI Engine.",
+          relevantClause: "N/A",
+          sourceCitation: "System Error"
+        };
+      }
+    } else if (conversation.contextMode === 'DOCUMENT' && conversation.documentId) {
       aiResponse = await queryDocumentRAG(req.user.id, conversation.documentId, content);
     } else {
-      aiResponse = await queryGeneralLegalAI(content);
+      // Fetch full history to send to LangGraph backend
+      const history = await prisma.message.findMany({
+        where: { conversationId: conversation.id },
+        orderBy: { createdAt: 'asc' }
+      });
+      
+      const messagesPayload = history.map(m => ({
+        role: m.sender === 'USER' ? 'user' : 'assistant',
+        content: m.content
+      }));
+      // ensure the latest message is in the payload
+      
+      aiResponse = await queryGeneralLegalAI(messagesPayload, conversation.vaultId);
     }
 
     // Save AI response message

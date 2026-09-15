@@ -154,81 +154,63 @@ Provide a response in JSON format:
   };
 };
 
-// General Legal Educational QA
-export const queryGeneralLegalAI = async (userQuestion) => {
-  const qLower = userQuestion.toLowerCase();
+const aiBackendUrl = process.env.AI_BACKEND_URL || 'http://127.0.0.1:8000';
 
-  // Knowledge base lookup for common legal questions
-  if (qLower.includes('nda') || qLower.includes('non-disclosure')) {
-    return {
-      answer: "A Non-Disclosure Agreement (NDA) is a legally binding contract that establishes a confidential relationship between parties to protect proprietary information, trade secrets, or sensitive business data from public disclosure.",
-      explanation: "When you sign an NDA, you promise not to share the specified confidential information with anyone outside the approved scope.",
-      relevantClause: "Standard Confidentiality Obligation & Remedy for Breach Clause",
-      sourceCitation: "General Legal Knowledge Base — Indian Contract Act, 1872"
-    };
-  }
+// General Legal Educational QA - Delegated to Python AI Backend (LangGraph)
+export const queryGeneralLegalAI = async (messages, vaultId = null) => {
+  try {
+    const response = await fetch(`${aiBackendUrl}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, vault_id: vaultId })
+    });
 
-  if (qLower.includes('notice period')) {
-    return {
-      answer: "A notice period is the required timeframe between notifying a party of contract termination and the actual end date of employment or lease.",
-      explanation: "In employment, notice periods usually range from 30 to 90 days in India, allowing the employer to transition work or find a replacement.",
-      relevantClause: "Standard Termination & Notice Period Clause",
-      sourceCitation: "General Legal Knowledge Base — Labor & Employment Law"
-    };
-  }
-
-  if (qLower.includes('indemnity') || qLower.includes('indemnification')) {
-    return {
-      answer: "Indemnity is a contractual clause where one party promises to compensate the other for legal liabilities, damages, losses, or costs arising from specified events.",
-      explanation: "It shifts financial risk. If party A causes a legal loss, party A agrees to cover party B's expenses.",
-      relevantClause: "Indian Contract Act, 1872 — Section 124 (Contract of Indemnity)",
-      sourceCitation: "General Legal Knowledge Base — Commercial Law"
-    };
-  }
-
-  if (qLower.includes('rental') || qLower.includes('lease') || qLower.includes('tenant')) {
-    return {
-      answer: "In India, rental agreements for 11 months are standard to avoid compulsory registration requirements under the Registration Act, 1908. Rent, security deposit, notice period, and maintenance should be clearly stated.",
-      explanation: "Ensure the agreement specifies who pays for repairs, electricity, water, and deposit refund terms upon vacating.",
-      relevantClause: "Rent Control & Property Transfer Laws (India)",
-      sourceCitation: "General Legal Knowledge Base — Real Estate & Property Law"
-    };
-  }
-
-  // Gemini API fallback for general legal queries
-  if (genAI) {
-    try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `You are Lexora AI, an educational legal assistant for Indian law.
-Answer this general legal query clearly. Emphasize that this is general educational legal information, not formal legal representation.
-
-Question: ${userQuestion}
-
-JSON response format:
-{
-  "answer": "Clear legal information answer",
-  "explanation": "Simple plain language summary",
-  "relevantClause": "Relevant statutory act or legal principle (e.g. Indian Contract Act 1872)",
-  "sourceCitation": "Educational Legal Reference — Lexora Legal Knowledge Base"
-}`;
-
-      const result = await model.generateContent(prompt);
-      const textResp = result.response.text();
-      const jsonMatch = textResp.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-    } catch (e) {
-      console.warn('Gemini General AI fallback:', e.message);
+    if (!response.ok) {
+      throw new Error(`Python AI Backend Error: ${response.statusText}`);
     }
-  }
 
-  return {
-    answer: `Regarding "${userQuestion}": In Indian law, contract provisions are governed by the Indian Contract Act, 1872. Key terms should always be clearly defined, with clear obligations, termination conditions, and dispute resolution mechanisms.`,
-    explanation: "Legal contracts require mutual consent, valid consideration, lawful object, and free consent between competent parties.",
-    relevantClause: "Indian Contract Act, 1872 — Section 10 (What agreements are contracts)",
-    sourceCitation: "Educational Legal Reference — Indian Legal System Overview"
-  };
+    const data = await response.json();
+    
+    // Assuming the Python backend returns:
+    // { is_complete, missing_information, analysis, counterarguments, retrieved_statutes, retrieved_precedents, flagged_citations }
+    const { is_complete, missing_information, analysis, counterarguments, retrieved_statutes, retrieved_precedents, flagged_citations } = data;
+
+    if (!is_complete) {
+      return {
+        answer: missing_information,
+        explanation: "Junior Lawyer needs more facts before the Senior Advocate can analyze the case.",
+        relevantClause: "N/A",
+        sourceCitation: "Lexora AI Intake"
+      };
+    }
+
+    // Build the final response format mimicking the RAG response
+    const combinedAnswer = `${analysis}\n\n**Adversarial Perspective (Risks & Counterarguments):**\n${counterarguments}`;
+    
+    // Combine citations for the frontend
+    const citations = [
+      ...(retrieved_statutes || []),
+      ...(retrieved_precedents || []),
+      ...(flagged_citations || [])
+    ];
+    
+    return {
+      answer: combinedAnswer,
+      explanation: "Comprehensive legal analysis generated by Senior Advocate and stress-tested by Adversarial Counsel.",
+      relevantClause: "N/A",
+      sourceCitation: JSON.stringify(citations),
+      flaggedCitations: flagged_citations || []
+    };
+  } catch (e) {
+    console.error('Failed to communicate with Python AI Backend:', e.message);
+    return {
+      answer: "I am currently unable to reach the Lexora AI Core Engine. Please ensure the Python backend is running on port 8000.",
+      explanation: "System Error.",
+      relevantClause: "N/A",
+      sourceCitation: "System Error",
+      is_complete: false
+    };
+  }
 };
 
 // Clause Explainer
@@ -242,4 +224,46 @@ export const explainClause = async (clauseText) => {
       'Governed by local jurisdiction courts in India.'
     ]
   };
+};
+
+// Timeline Generator - Calls Python Timeline API
+export const generateTimeline = async (text) => {
+  try {
+    const response = await fetch(`${aiBackendUrl}/api/v1/research/extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Python AI Backend Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.timeline;
+  } catch (e) {
+    console.error('Failed to generate timeline via Python AI Backend:', e.message);
+    throw e;
+  }
+};
+
+// Drafting Agent - Calls Python Draft API
+export const draftDocument = async (prompt) => {
+  try {
+    const response = await fetch(`${aiBackendUrl}/api/v1/research/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, jurisdiction: "India" })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Python AI Backend Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (e) {
+    console.error('Failed to generate draft via Python AI Backend:', e.message);
+    throw e;
+  }
 };

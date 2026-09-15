@@ -41,22 +41,100 @@ const upload = multer({
   fileFilter
 });
 
-// Upload document to Vault
+// GET all vaults
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const vaults = await prisma.vault.findMany({
+      where: { userId: req.user.id },
+      include: {
+        _count: {
+          select: { documents: true }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+    return res.json({ vaults });
+  } catch (error) {
+    console.error('Fetch Vaults Error:', error);
+    return res.status(500).json({ error: { message: 'Failed to fetch vaults.' } });
+  }
+});
+
+// CREATE a new vault
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: { message: 'Vault name is required.' } });
+    }
+    const vault = await prisma.vault.create({
+      data: { userId: req.user.id, name, description }
+    });
+    return res.status(201).json({ vault });
+  } catch (error) {
+    console.error('Create Vault Error:', error);
+    return res.status(500).json({ error: { message: 'Failed to create vault.' } });
+  }
+});
+
+// GET vault details
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const vault = await prisma.vault.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+      include: { documents: true }
+    });
+    if (!vault) {
+      return res.status(404).json({ error: { message: 'Vault not found.' } });
+    }
+    return res.json({ vault });
+  } catch (error) {
+    return res.status(500).json({ error: { message: 'Failed to fetch vault details.' } });
+  }
+});
+
+// ADD existing document to vault
+router.post('/:id/documents', authenticateToken, async (req, res) => {
+  try {
+    const { documentId } = req.body;
+    const vault = await prisma.vault.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!vault) return res.status(404).json({ error: { message: 'Vault not found.' } });
+    
+    const document = await prisma.document.findFirst({ where: { id: documentId, userId: req.user.id } });
+    if (!document) return res.status(404).json({ error: { message: 'Document not found.' } });
+
+    const updatedDoc = await prisma.document.update({
+      where: { id: documentId },
+      data: { vaultId: vault.id }
+    });
+
+    return res.json({ message: 'Document added to vault.', document: updatedDoc });
+  } catch (error) {
+    return res.status(500).json({ error: { message: 'Failed to add document to vault.' } });
+  }
+});
+
+// Upload document directly to Vault
 router.post('/uploads', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        error: { code: 'NO_FILE', message: 'Please upload a PDF, DOCX, or TXT file.' }
-      });
+      return res.status(400).json({ error: { code: 'NO_FILE', message: 'Please upload a PDF, DOCX, or TXT file.' } });
+    }
+
+    const { vaultId } = req.body;
+    if (vaultId) {
+      const vault = await prisma.vault.findFirst({ where: { id: vaultId, userId: req.user.id } });
+      if (!vault) return res.status(404).json({ error: { message: 'Target vault not found.' } });
     }
 
     const { originalname, path: filePath, size } = req.file;
     const ext = path.extname(originalname).substring(1).toUpperCase();
 
-    // Create Document record with status PROCESSING
+    // Create Document record
     const document = await prisma.document.create({
       data: {
         userId: req.user.id,
+        vaultId: vaultId || null,
         title: originalname,
         type: 'UPLOADED',
         status: 'PROCESSING',
@@ -74,7 +152,6 @@ router.post('/uploads', authenticateToken, upload.single('file'), async (req, re
       const parsedPdf = await pdfParse(dataBuffer);
       extractedText = parsedPdf.text || '';
     } else {
-      // For TXT and DOCX text extraction
       extractedText = fs.readFileSync(filePath, 'utf-8');
     }
 
@@ -93,8 +170,32 @@ router.post('/uploads', authenticateToken, upload.single('file'), async (req, re
       }
     });
 
-    // Run structural chunking & RAG indexing
-    const totalChunks = await processAndChunkDocument(document.id, extractedText);
+    // Run structural chunking & RAG indexing (Fallback for non-vault)
+    let totalChunks = await processAndChunkDocument(document.id, extractedText);
+
+    // Call Python backend for global indexing if in a Vault
+    if (vaultId) {
+      try {
+        const pyRes = await fetch('http://127.0.0.1:8000/api/v1/ingest/ingest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            document_id: document.id,
+            title: originalname,
+            text: extractedText,
+            vault_id: vaultId
+          })
+        });
+        if (pyRes.ok) {
+          const pyData = await pyRes.json();
+          totalChunks = pyData.chunks_indexed || totalChunks;
+        } else {
+          console.error("Python ingest failed:", await pyRes.text());
+        }
+      } catch (err) {
+        console.error("Failed to connect to Python ingest API:", err.message);
+      }
+    }
 
     // Audit log
     await prisma.auditLog.create({
