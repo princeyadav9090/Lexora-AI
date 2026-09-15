@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export const Sidebar = () => {
+export const Sidebar = React.memo(() => {
   const { isAdmin } = useAuth();
 
   const navItems = [
@@ -94,4 +94,4 @@ export const Sidebar = () => {
 
     </aside>
   );
-};
+});

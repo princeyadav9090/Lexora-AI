@@ -2,8 +2,13 @@ import { fetchClient } from './apiClient.js';
 
 export const documentApi = {
   async getStats() {
+    const cached = sessionStorage.getItem('lexora_stats');
+    if (cached) return JSON.parse(cached);
+
     const res = await fetchClient('/documents/stats');
-    return res.stats || res;
+    const stats = res.stats || res;
+    sessionStorage.setItem('lexora_stats', JSON.stringify(stats));
+    return stats;
   },
 
   async getTemplates() {
@@ -11,16 +16,23 @@ export const documentApi = {
     return res.templates || res;
   },
 
-  async generateDocument(documentType, title, answers) {
+  async generateDocument(payload) {
+    sessionStorage.removeItem('lexora_documents');
+    sessionStorage.removeItem('lexora_stats'); // Invalidate stats cache
     return fetchClient('/documents/generate', {
       method: 'POST',
-      body: JSON.stringify({ documentType, title, answers })
+      body: JSON.stringify(payload)
     });
   },
 
   async getDocuments() {
+    const cached = sessionStorage.getItem('lexora_documents');
+    if (cached) return JSON.parse(cached);
+
     const res = await fetchClient('/documents');
-    return res.documents || res;
+    const docs = res.documents || res;
+    sessionStorage.setItem('lexora_documents', JSON.stringify(docs));
+    return docs;
   },
 
   async getDocumentDetail(id) {
@@ -29,6 +41,8 @@ export const documentApi = {
   },
 
   async updateDocument(id, content, title, changeLog) {
+    sessionStorage.removeItem('lexora_documents');
+    sessionStorage.removeItem('lexora_stats'); // Invalidate stats cache
     return fetchClient(`/documents/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ content, title, changeLog })
@@ -42,6 +56,8 @@ export const documentApi = {
   },
 
   async deleteDocument(id) {
+    sessionStorage.removeItem('lexora_documents');
+    sessionStorage.removeItem('lexora_stats'); // Invalidate stats cache
     return fetchClient(`/documents/${id}`, {
       method: 'DELETE'
     });

@@ -113,5 +113,21 @@ export const assistantService = {
       throw new ApiError(400, 'Clause text is required.');
     }
     return explainClauseEngine(clauseText);
+  },
+
+  async deleteConversation(userId, conversationId) {
+    const conversation = await prisma.conversation.findFirst({
+      where: { id: conversationId, userId }
+    });
+
+    if (!conversation) {
+      throw new ApiError(404, 'Conversation not found.');
+    }
+
+    await prisma.conversation.delete({
+      where: { id: conversationId }
+    });
+
+    return true;
   }
 };

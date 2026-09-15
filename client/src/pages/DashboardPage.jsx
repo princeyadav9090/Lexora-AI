@@ -26,17 +26,38 @@ export const DashboardPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [documents, setDocuments] = useState([]);
-  const [conversations, setConversations] = useState([]);
-  const [consultations, setConsultations] = useState([]);
-  const [stats, setStats] = useState({
-    totalDocuments: 0,
-    activeContracts: 0,
-    signedContracts: 0,
-    pendingDrafts: 0,
-    storageDisplay: '0 MB'
+  const [documents, setDocuments] = useState(() => {
+    const cached = sessionStorage.getItem('lexora_documents');
+    return cached ? JSON.parse(cached) : [];
   });
-  const [loading, setLoading] = useState(true);
+  
+  const [conversations, setConversations] = useState(() => {
+    const cached = sessionStorage.getItem('lexora_chats');
+    return cached ? JSON.parse(cached) : [];
+  });
+  
+  const [consultations, setConsultations] = useState(() => {
+    const cached = sessionStorage.getItem('lexora_consultations');
+    return cached ? JSON.parse(cached) : [];
+  });
+  
+  const [stats, setStats] = useState(() => {
+    const cached = sessionStorage.getItem('lexora_stats');
+    if (cached) return JSON.parse(cached);
+    return {
+      totalDocuments: 0,
+      activeContracts: 0,
+      signedContracts: 0,
+      pendingDrafts: 0,
+      storageDisplay: '0 MB'
+    };
+  });
+
+  const isCached = 
+    sessionStorage.getItem('lexora_documents') &&
+    sessionStorage.getItem('lexora_stats');
+    
+  const [loading, setLoading] = useState(!isCached);
 
   useEffect(() => {
     fetchDashboardData();

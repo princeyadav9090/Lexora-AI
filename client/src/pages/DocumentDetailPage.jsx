@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { 
   FileText, 
   Bot, 
@@ -11,7 +12,8 @@ import {
   ArrowLeft, 
   ShieldCheck, 
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Printer
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
@@ -114,16 +116,20 @@ export const DocumentDetailPage = () => {
   const latestVersion = document.versions?.[0] || {};
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#2D1C13] flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
-      <Navbar />
+    <div className="min-h-screen bg-[#FAF8F5] print:bg-white text-[#2D1C13] flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+      <div className="print:hidden">
+        <Navbar />
+      </div>
 
       <div className="flex-1 flex">
-        <Sidebar />
+        <div className="print:hidden">
+          <Sidebar />
+        </div>
 
-        <main className="flex-1 p-6 space-y-6 max-w-6xl overflow-y-auto">
+        <main className="flex-1 p-6 print:p-0 space-y-6 print:space-y-0 max-w-6xl print:max-w-none overflow-y-auto print:overflow-visible">
           
           {/* Top Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#EAE3D2] pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#EAE3D2] pb-4 print:hidden">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/vault')}
@@ -183,7 +189,15 @@ export const DocumentDetailPage = () => {
                 className="px-3.5 py-2 rounded-xl bg-white border border-[#EAE3D2] hover:bg-[#F4F1EA] text-[#2D1C13] text-xs font-bold flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Export TXT</span>
+                <span>Download TXT</span>
+              </button>
+
+              <button
+                onClick={() => window.print()}
+                className="px-3.5 py-2 rounded-xl bg-white border border-[#EAE3D2] hover:bg-[#F4F1EA] text-[#2D1C13] text-xs font-bold flex items-center gap-1.5"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print / PDF</span>
               </button>
 
               <button
@@ -197,9 +211,9 @@ export const DocumentDetailPage = () => {
           </div>
 
           {/* MAIN PREVIEW AREA */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 print:block">
             
-            <div className="lg:col-span-3 space-y-4">
+            <div className="lg:col-span-3 space-y-4 print:space-y-0">
               
               {isEditing ? (
                 <div className="bg-white border border-[#EAE3D2] p-5 rounded-2xl space-y-3 shadow-sm">
@@ -222,23 +236,25 @@ export const DocumentDetailPage = () => {
                 </div>
               ) : (
                 /* Page-like Reading Experience */
-                <div className="bg-white border border-[#EAE3D2] rounded-2xl p-8 shadow-sm space-y-4 min-h-[600px]">
-                  <div className="flex items-center justify-between border-b border-[#EAE3D2] pb-3 text-xs text-[#70665F]">
+                <div className="bg-white border border-[#EAE3D2] print:border-none rounded-2xl print:rounded-none p-8 print:p-0 shadow-sm print:shadow-none space-y-4 print:space-y-0 min-h-[600px] print:min-h-0">
+                  <div className="flex items-center justify-between border-b border-[#EAE3D2] pb-3 text-xs text-[#70665F] print:hidden">
                     <span>Lexora AI Verified Legal Preview</span>
                     <span>Version v{latestVersion.version || 1} • Jurisdiction: {document.jurisdiction || 'IN'}</span>
                   </div>
 
-                  <div className="prose text-[#2D1C13] text-xs leading-relaxed whitespace-pre-wrap font-sans">
-                    {latestVersion.content}
+                  <div className="prose prose-sm max-w-none text-[#2D1C13] leading-relaxed font-sans print:prose-base print:text-black">
+                    <ReactMarkdown>{latestVersion.content || ''}</ReactMarkdown>
                   </div>
                 </div>
               )}
 
-              <LegalDisclaimer compact />
+              <div className="print:hidden">
+                <LegalDisclaimer compact />
+              </div>
             </div>
 
             {/* Sidebar Details / Versions */}
-            <div className="space-y-4">
+            <div className="space-y-4 print:hidden">
               
               <div className="bg-white border border-[#EAE3D2] p-4 rounded-2xl space-y-3 shadow-sm">
                 <h3 className="text-xs font-bold text-[#70665F] uppercase tracking-wider">Document Specs</h3>
