@@ -1,10 +1,20 @@
 import { fetchClient } from './apiClient.js';
 
 export const lawyerApi = {
-  async getLawyers(specialization, location) {
+  async getLawyers(opts = {}, locationArg, latArg, lngArg) {
     const params = new URLSearchParams();
-    if (specialization) params.append('specialization', specialization);
-    if (location) params.append('location', location);
+
+    if (typeof opts === 'object' && opts !== null) {
+      if (opts.specialization) params.append('specialization', opts.specialization);
+      if (opts.location) params.append('location', opts.location);
+      if (opts.lat) params.append('lat', opts.lat);
+      if (opts.lng) params.append('lng', opts.lng);
+    } else {
+      if (opts) params.append('specialization', opts);
+      if (locationArg) params.append('location', locationArg);
+      if (latArg) params.append('lat', latArg);
+      if (lngArg) params.append('lng', lngArg);
+    }
 
     const query = params.toString() ? `?${params.toString()}` : '';
     const res = await fetchClient(`/lawyers${query}`);
