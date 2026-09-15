@@ -1,28 +1,33 @@
-import prisma from '../config/db.js';
+import { PrismaClient } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { env } from '../config/env.js';
 
-const geminiApiKey = env.GEMINI_API_KEY;
+const prisma = new PrismaClient();
+const geminiApiKey = process.env.GEMINI_API_KEY;
 let genAI = null;
 if (geminiApiKey) {
   genAI = new GoogleGenerativeAI(geminiApiKey);
 }
 
+// Clause / Section Chunker
 export const processAndChunkDocument = async (documentId, fullText) => {
+  // Delete existing chunks
   await prisma.documentChunk.deleteMany({ where: { documentId } });
 
+  // Clean and split text into structural paragraphs/clauses
   const rawSections = fullText
     .split(/\n\s*\n|(?=^#{1,4}\s)|(?=^\d+\.\s+[A-Z])|(?=^[A-Z\s]{4,}:)/m)
     .map(s => s.trim())
     .filter(s => s.length > 20);
 
   const chunksToInsert = rawSections.map((sectionText, index) => {
+    // Attempt section title extraction
     let sectionTitle = `Section ${index + 1}`;
     const titleMatch = sectionText.match(/^(?:#+\s*)?([^\n\r]+)/);
     if (titleMatch && titleMatch[1]) {
       sectionTitle = titleMatch[1].replace(/[*#]/g, '').trim().slice(0, 60);
     }
 
+    // Estimate page number (assuming ~2500 chars per page)
     const pageNum = Math.floor((index * 300) / 2500) + 1;
 
     return {
@@ -38,6 +43,7 @@ export const processAndChunkDocument = async (documentId, fullText) => {
     await prisma.documentChunk.createMany({ data: chunksToInsert });
   }
 
+  // Update status to READY
   await prisma.document.update({
     where: { id: documentId },
     data: { status: 'READY' }
@@ -46,6 +52,7 @@ export const processAndChunkDocument = async (documentId, fullText) => {
   return chunksToInsert.length;
 };
 
+// TF-IDF / Term matching similarity calculation
 const computeRelevanceScore = (query, text) => {
   const queryTerms = query.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(t => t.length > 2);
   const textLower = text.toLowerCase();
@@ -61,7 +68,9 @@ const computeRelevanceScore = (query, text) => {
   return score;
 };
 
+// Grounded Document Q&A RAG
 export const queryDocumentRAG = async (userId, documentId, userQuestion) => {
+  // Authorization check
   const document = await prisma.document.findFirst({
     where: { id: documentId, userId },
     include: { chunks: true }
@@ -80,36 +89,29 @@ export const queryDocumentRAG = async (userId, documentId, userQuestion) => {
     };
   }
 
+  // Rank chunks by relevance
   const scoredChunks = document.chunks.map(chunk => ({
     ...chunk,
     score: computeRelevanceScore(userQuestion, chunk.content)
   })).sort((a, b) => b.score - a.score);
 
-  const topChunk = scoredChunks[0];
+  const topChunks = scoredChunks.slice(0, 3);
+  const topChunk = topChunks[0];
+  const contextText = topChunks.map(c => `Section: ${c.section || 'General'}\nPage: ${c.pageNumber || 1}\nContent: ${c.content}`).join('\n\n');
 
-  if (!topChunk || topChunk.score < 1) {
-    return {
-      answer: "I couldn't find enough information in the selected document to answer that reliably.",
-      explanation: "The query topic does not appear to be explicitly mentioned in the clauses of this contract.",
-      relevantClause: "No matching clause found.",
-      sourceCitation: `${document.title}`
-    };
-  }
-
+  // If Gemini API is available, generate grounded LLM answer
   if (genAI) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
       const prompt = `You are Lexora AI, a grounded legal assistant.
 You are given a question and a verified excerpt from a legal contract.
 Answer ONLY based on the excerpt below. If the excerpt does NOT contain the answer, say "I couldn't find enough information in the selected document to answer that reliably."
 
 Document: ${document.title}
-Section: ${topChunk.section || 'General Clause'}
-Page: ${topChunk.pageNumber || 1}
 
-Excerpt:
+Excerpts:
 """
-${topChunk.content}
+${contextText}
 """
 
 User Question: ${userQuestion}
@@ -133,6 +135,7 @@ Provide a response in JSON format:
     }
   }
 
+  // Deterministic local grounded response
   return {
     answer: `Based on ${topChunk.section || 'the contract clauses'}, here is the relevant term: "${topChunk.content.slice(0, 180)}..."`,
     explanation: `This clause specifies the obligations and rules regarding "${userQuestion}".`,
@@ -141,61 +144,79 @@ Provide a response in JSON format:
   };
 };
 
-export const queryGeneralLegalAI = async (userQuestion) => {
-  const qLower = userQuestion.toLowerCase();
+const aiBackendUrl = process.env.AI_BACKEND_URL || 'http://127.0.0.1:8000';
 
-  if (qLower.includes('nda') || qLower.includes('non-disclosure')) {
+// General Legal Educational QA - Delegated to Python AI Backend (LangGraph)
+export const queryGeneralLegalAI = async (messages, vaultId = null) => {
+  try {
+    const response = await fetch(`${aiBackendUrl}/api/v1/research/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, vault_id: vaultId })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Python AI Backend Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Assuming the Python backend returns:
+    // { is_complete, missing_information, analysis, counterarguments, retrieved_statutes, retrieved_precedents, flagged_citations }
+    const { is_complete, missing_information, analysis, counterarguments, retrieved_statutes, retrieved_precedents, flagged_citations } = data;
+
+    if (!is_complete) {
+      return {
+        answer: missing_information,
+        explanation: "Junior Lawyer needs more facts before the Senior Advocate can analyze the case.",
+        relevantClause: "N/A",
+        sourceCitation: "Lexora AI Intake"
+      };
+    }
+
+    // Build the final response format mimicking the RAG response
+    const combinedAnswer = `${analysis}\n\n**Adversarial Perspective (Risks & Counterarguments):**\n${counterarguments}`;
+    
+    // Combine citations for the frontend
+    const citations = [
+      ...(retrieved_statutes || []),
+      ...(retrieved_precedents || []),
+      ...(flagged_citations || [])
+    ];
+    
     return {
-      answer: "A Non-Disclosure Agreement (NDA) is a legally binding contract that establishes a confidential relationship between parties to protect proprietary information, trade secrets, or sensitive business data from public disclosure.",
-      explanation: "When you sign an NDA, you promise not to share the specified confidential information with anyone outside the approved scope.",
-      relevantClause: "Standard Confidentiality Obligation & Remedy for Breach Clause",
-      sourceCitation: "General Legal Knowledge Base — Indian Contract Act, 1872"
+      answer: combinedAnswer,
+      explanation: "Comprehensive legal analysis generated by Senior Advocate and stress-tested by Adversarial Counsel.",
+      relevantClause: "N/A",
+      sourceCitation: JSON.stringify(citations),
+      flaggedCitations: flagged_citations || []
+    };
+  } catch (e) {
+    console.error('Failed to communicate with Python AI Backend:', e.message);
+    return {
+      answer: "I am currently unable to reach the Lexora AI Core Engine. Please ensure the Python backend is running on port 8000.",
+      explanation: "System Error.",
+      relevantClause: "N/A",
+      sourceCitation: "System Error",
+      is_complete: false
     };
   }
+};
 
-  if (qLower.includes('notice period')) {
-    return {
-      answer: "A notice period is the required timeframe between notifying a party of contract termination and the actual end date of employment or lease.",
-      explanation: "In employment, notice periods usually range from 30 to 90 days in India, allowing the employer to transition work or find a replacement.",
-      relevantClause: "Standard Termination & Notice Period Clause",
-      sourceCitation: "General Legal Knowledge Base — Labor & Employment Law"
-    };
-  }
-
-  if (qLower.includes('indemnity') || qLower.includes('indemnification')) {
-    return {
-      answer: "Indemnity is a contractual clause where one party promises to compensate the other for legal liabilities, damages, losses, or costs arising from specified events.",
-      explanation: "It shifts financial risk. If party A causes a legal loss, party A agrees to cover party B's expenses.",
-      relevantClause: "Indian Contract Act, 1872 — Section 124 (Contract of Indemnity)",
-      sourceCitation: "General Legal Knowledge Base — Commercial Law"
-    };
-  }
-
-  if (qLower.includes('rental') || qLower.includes('lease') || qLower.includes('tenant')) {
-    return {
-      answer: "In India, rental agreements for 11 months are standard to avoid compulsory registration requirements under the Registration Act, 1908. Rent, security deposit, notice period, and maintenance should be clearly stated.",
-      explanation: "Ensure the agreement specifies who pays for repairs, electricity, water, and deposit refund terms upon vacating.",
-      relevantClause: "Rent Control & Property Transfer Laws (India)",
-      sourceCitation: "General Legal Knowledge Base — Real Estate & Property Law"
-    };
-  }
-
+// Clause Explainer
+export const explainClause = async (clauseText) => {
   if (genAI) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `You are Lexora AI, an educational legal assistant for Indian law.
-Answer this general legal query clearly. Emphasize that this is general educational legal information, not formal legal representation.
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+      const prompt = `You are Lexora AI. Explain the following legal clause in simple, plain language.
+Clause: "${clauseText}"
 
-Question: ${userQuestion}
-
-JSON response format:
+Return ONLY a valid JSON object with exactly this structure:
 {
-  "answer": "Clear legal information answer",
-  "explanation": "Simple plain language summary",
-  "relevantClause": "Relevant statutory act or legal principle (e.g. Indian Contract Act 1872)",
-  "sourceCitation": "Educational Legal Reference — Lexora Legal Knowledge Base"
+  "originalClause": "the clause text",
+  "simplifiedExplanation": "A 1-2 sentence plain-language explanation of what this means.",
+  "keyObligations": ["bullet point 1", "bullet point 2"]
 }`;
-
       const result = await model.generateContent(prompt);
       const textResp = result.response.text();
       const jsonMatch = textResp.match(/\{[\s\S]*\}/);
@@ -203,19 +224,10 @@ JSON response format:
         return JSON.parse(jsonMatch[0]);
       }
     } catch (e) {
-      console.warn('Gemini General AI fallback:', e.message);
+      console.warn('Explain Clause fallback:', e.message);
     }
   }
 
-  return {
-    answer: `Regarding "${userQuestion}": In Indian law, contract provisions are governed by the Indian Contract Act, 1872. Key terms should always be clearly defined, with clear obligations, termination conditions, and dispute resolution mechanisms.`,
-    explanation: "Legal contracts require mutual consent, valid consideration, lawful object, and free consent between competent parties.",
-    relevantClause: "Indian Contract Act, 1872 — Section 10 (What agreements are contracts)",
-    sourceCitation: "Educational Legal Reference — Indian Legal System Overview"
-  };
-};
-
-export const explainClause = async (clauseText) => {
   return {
     originalClause: clauseText,
     simplifiedExplanation: `This clause means: You are agreeing that the terms defined here apply strictly as stated. If either party breaks this requirement, legal remedies or monetary penalties may apply under Indian law.`,
@@ -225,4 +237,46 @@ export const explainClause = async (clauseText) => {
       'Governed by local jurisdiction courts in India.'
     ]
   };
+};
+
+// Timeline Generator - Calls Python Timeline API
+export const generateTimeline = async (text) => {
+  try {
+    const response = await fetch(`${aiBackendUrl}/api/v1/research/extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Python AI Backend Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.timeline;
+  } catch (e) {
+    console.error('Failed to generate timeline via Python AI Backend:', e.message);
+    throw e;
+  }
+};
+
+// Drafting Agent - Calls Python Draft API
+export const draftDocument = async (prompt) => {
+  try {
+    const response = await fetch(`${aiBackendUrl}/api/v1/research/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, jurisdiction: "India" })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Python AI Backend Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (e) {
+    console.error('Failed to generate draft via Python AI Backend:', e.message);
+    throw e;
+  }
 };

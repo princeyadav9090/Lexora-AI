@@ -75,7 +75,18 @@ export const assistantService = {
     if (conversation.contextMode === 'DOCUMENT' && conversation.documentId) {
       aiResult = await queryDocumentRAG(userId, conversation.documentId, content);
     } else {
-      aiResult = await queryGeneralLegalAI(content);
+      // Fetch full history to send to LangGraph backend
+      const history = await prisma.message.findMany({
+        where: { conversationId },
+        orderBy: { createdAt: 'asc' }
+      });
+      
+      const messagesPayload = history.map(m => ({
+        role: m.sender === 'USER' ? 'user' : 'assistant',
+        content: m.content
+      }));
+      
+      aiResult = await queryGeneralLegalAI(messagesPayload, conversation.vaultId);
     }
 
     const aiMessage = await prisma.message.create({

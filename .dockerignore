@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+Dockerfile
+Dockerfile.server
+.dockerignore
+.env
+.git
+.gitignore
+.next
+.vite
+build
+dist
+out
+ai-backend/venv
+ai-backend/__pycache__
+ai-backend/.env
