@@ -22,16 +22,11 @@ import {
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { LegalDisclaimer } from '../components/LegalDisclaimer';
-import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
   const [heroQuery, setHeroQuery] = useState('');
   const [openFaq, setOpenFaq] = useState(null);
-
-  const { isListening, toggleListening, error: voiceError } = useSpeechRecognition((text) => {
-    setHeroQuery(text);
-  });
 
   const handleHeroSearch = (e) => {
     e.preventDefault();
@@ -70,28 +65,23 @@ export const LandingPage = () => {
             </p>
 
             {/* Figma-matching Query Bar */}
-            <form onSubmit={handleHeroSearch} className="max-w-2xl mx-auto relative space-y-2">
+            <form onSubmit={handleHeroSearch} className="max-w-2xl mx-auto relative">
               <div className="flex items-center bg-white border-2 border-[#EAE3D2] hover:border-[#E07A5F] focus-within:border-[#E07A5F] rounded-2xl p-2 shadow-lg transition-all">
                 <Search className="w-5 h-5 text-[#70665F] ml-3" />
                 <input
                   type="text"
                   value={heroQuery}
                   onChange={(e) => setHeroQuery(e.target.value)}
-                  placeholder={isListening ? "Listening... speak your query" : "Type your legal query or contract question..."}
+                  placeholder="Type your legal query or contract question..."
                   className="flex-1 bg-transparent px-3 py-2 text-xs font-semibold text-[#2D1C13] placeholder-[#70665F] focus:outline-none"
                 />
                 <button
                   type="button"
-                  onClick={toggleListening}
-                  className={`p-2 transition-all relative rounded-xl ${
-                    isListening ? 'text-[#E07A5F] bg-[#FEF7E0] scale-110' : 'text-[#70665F] hover:text-[#E07A5F]'
-                  }`}
-                  title={isListening ? 'Stop Listening' : 'Voice Query'}
+                  onClick={() => alert('Voice input activated')}
+                  className="p-2 text-[#70665F] hover:text-[#E07A5F] transition-colors"
+                  title="Voice Query"
                 >
                   <Mic className="w-4 h-4" />
-                  {isListening && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#E07A5F] animate-ping" />
-                  )}
                 </button>
                 <button
                   type="submit"
@@ -100,19 +90,6 @@ export const LandingPage = () => {
                   Ask Lexora
                 </button>
               </div>
-
-              {isListening && (
-                <div className="text-xs font-bold text-[#E07A5F] flex items-center justify-center gap-2 animate-pulse">
-                  <span className="w-2 h-2 rounded-full bg-[#E07A5F]"></span>
-                  <span>Listening... Speak your legal query now</span>
-                </div>
-              )}
-
-              {voiceError && (
-                <div className="text-xs text-red-600 bg-red-50 p-2 rounded-xl border border-red-200 text-center">
-                  {voiceError}
-                </div>
-              )}
             </form>
 
             {/* Quick Actions Bar */}
