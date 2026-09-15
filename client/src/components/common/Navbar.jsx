@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Scale, LogOut, User as UserIcon, Shield, Sparkles, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export const Navbar = () => {
+export const Navbar = React.memo(() => {
   const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -118,4 +118,4 @@ export const Navbar = () => {
       </div>
     </header>
   );
-};
+});

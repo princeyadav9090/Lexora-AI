@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     NEO4J_PASSWORD: str = "password"
     
     # API Keys
+    OPENROUTER_API_KEY: Optional[str] = None
     NVIDIA_API_KEY: Optional[str] = None
     GOOGLE_API_KEY: Optional[str] = None
     GOOGLE_SAFE_BROWSING_API_KEY: Optional[str] = None

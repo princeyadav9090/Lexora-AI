@@ -21,3 +21,10 @@ export const explainClause = asyncHandler(async (req, res) => {
   const explanation = await assistantService.explainClause(req.body);
   return res.status(200).json(new ApiResponse(200, { explanation }, 'Clause explanation generated'));
 });
+
+export const deleteConversation = asyncHandler(async (req, res) => {
+  console.log(`[DELETE] Request received to delete conversation ${req.params.id} by user ${req.user.id}`);
+  await assistantService.deleteConversation(req.user.id, req.params.id);
+  console.log(`[DELETE] Successfully deleted conversation ${req.params.id}`);
+  return res.status(200).json(new ApiResponse(200, {}, 'Conversation deleted successfully'));
+});

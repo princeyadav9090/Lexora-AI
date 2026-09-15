@@ -23,7 +23,8 @@ import {
   Paperclip,
   ArrowUpRight,
   User,
-  Scale
+  Scale,
+  Trash2
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
@@ -181,6 +182,24 @@ export const AIAssistantPage = () => {
       setMessages([]);
     } catch (err) {
       console.error('Error creating new conversation:', err);
+    }
+  };
+
+  const handleDeleteConversation = async (e, convId) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this conversation?')) return;
+    
+    try {
+      await api.deleteConversation(convId);
+      setConversations(prev => prev.filter(c => c.id !== convId));
+      if (activeConvId === convId) {
+        setActiveConvId(null);
+        setMessages([]);
+        setSelectedDocId('');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Failed to delete conversation.');
     }
   };
 
@@ -360,10 +379,10 @@ export const AIAssistantPage = () => {
                         conversations.map((conv) => {
                           const isActive = conv.id === activeConvId;
                           return (
-                            <button
+                            <div
                               key={conv.id}
                               onClick={() => handleSelectConversation(conv)}
-                              className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center gap-2.5 transition-all ${
+                              className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center gap-2.5 transition-all cursor-pointer group ${
                                 isActive
                                   ? 'bg-[#FEF7E0] border border-[#EAE3D2] text-[#2D1C13] font-bold shadow-xs'
                                   : 'text-[#70665F] hover:bg-[#FAF8F5] hover:text-[#2D1C13]'
@@ -371,7 +390,14 @@ export const AIAssistantPage = () => {
                             >
                               <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#E07A5F]' : 'text-[#70665F]'}`} />
                               <span className="truncate flex-1">{conv.title || 'Legal Chat'}</span>
-                            </button>
+                              <button
+                                onClick={(e) => handleDeleteConversation(e, conv.id)}
+                                className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[#EAE3D2] transition-all text-[#E07A5F] hover:text-red-600 ${isActive ? 'opacity-100' : ''}`}
+                                title="Delete Conversation"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           );
                         })
                       )}

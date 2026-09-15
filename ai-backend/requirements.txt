@@ -11,7 +11,6 @@ asyncpg==0.29.0
 sqlalchemy==2.0.31
 neo4j==5.21.0
 python-dotenv==1.0.1
-sentence-transformers==3.0.1
 pdfplumber==0.11.2
 PyMuPDF==1.24.5
 pytest==8.2.2
@@ -19,3 +18,4 @@ langchain-google-genai
 langchain-nvidia-ai-endpoints
 streamlit
 python-dateutil
+langchain-openai

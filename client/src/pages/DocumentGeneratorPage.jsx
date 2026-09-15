@@ -1,83 +1,71 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
-  CheckCircle2, 
-  ArrowRight, 
-  ArrowLeft, 
   Sparkles, 
-  AlertCircle, 
-  ShieldCheck, 
-  Building2, 
-  Home, 
-  Briefcase, 
-  PenTool, 
-  GraduationCap
+  AlertCircle,
+  Building2,
+  Home,
+  Briefcase,
+  Globe2,
+  Scale
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
 import { api } from '../services/api';
 
-const ICON_MAP = {
-  NDA: Building2,
-  RENTAL_AGREEMENT: Home,
-  EMPLOYMENT_CONTRACT: Briefcase,
-  FREELANCE_AGREEMENT: PenTool,
-  INTERNSHIP_AGREEMENT: GraduationCap
-};
+const QUICK_PROMPTS = [
+  { id: 'nda', icon: Building2, label: 'Non-Disclosure Agreement', prompt: 'Draft a standard Non-Disclosure Agreement (NDA) for sharing proprietary business plans with a potential investor. Include standard confidentiality, non-compete, and severability clauses.' },
+  { id: 'rental', icon: Home, label: 'Residential Lease', prompt: 'Draft a residential rental agreement for an apartment. The lease should be for 11 months, with a standard security deposit and a 1-month notice period for termination.' },
+  { id: 'employment', icon: Briefcase, label: 'Employment Contract', prompt: 'Draft a full-time employment contract for a Senior Software Engineer. Include clauses for a 3-month probation period, IP assignment to the company, and a 60-day notice period.' },
+  { id: 'freelance', icon: Globe2, label: 'Freelance Agreement', prompt: 'Draft a freelance service agreement for web development services. Payment is 50% upfront and 50% on completion. IP transfers to the client only after full payment.' }
+];
 
 export const DocumentGeneratorPage = () => {
   const navigate = useNavigate();
   
-  const [templates, setTemplates] = useState([]);
-  const [selectedType, setSelectedType] = useState(null);
-  const [step, setStep] = useState(1);
-  const [answers, setAnswers] = useState({});
   const [docTitle, setDocTitle] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [prompt, setPrompt] = useState('');
+  const [jurisdiction, setJurisdiction] = useState('India (IN)');
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const tmpls = await api.getTemplates();
-        setTemplates(Array.isArray(tmpls) ? tmpls : Object.values(tmpls || {}));
-      } catch (e) {
-        console.error('Failed to load templates:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadTemplates();
-  }, []);
-
-  const handleSelectType = (tmpl) => {
-    setSelectedType(tmpl);
-    setAnswers({});
-    setDocTitle(`${tmpl.name}`);
-    setStep(2);
-  };
-
-  const handleInputChange = (fieldId, value) => {
-    setAnswers(prev => ({ ...prev, [fieldId]: value }));
+  const handleQuickPrompt = (quickPrompt) => {
+    setPrompt(quickPrompt.prompt);
+    if (!docTitle) {
+      setDocTitle(quickPrompt.label);
+    }
   };
 
   const handleGenerate = async (e) => {
     e.preventDefault();
+    if (!docTitle.trim() || !prompt.trim()) {
+      setError('Please provide both a document title and a description of your requirements.');
+      return;
+    }
+
     setError('');
-    setStep(3);
+    setIsGenerating(true);
 
     try {
-      const result = await api.generateDocument(selectedType.id, docTitle, answers);
-      const docId = result?.document?.id || result?.id;
+      // The API endpoint now expects title, prompt, and jurisdiction
+      const payload = {
+        title: docTitle,
+        prompt: prompt,
+        jurisdiction: jurisdiction
+      };
+
+      const result = await api.generateDocument(payload);
+      const docId = result?.data?.document?.id || result?.document?.id || result?.id;
+      
       if (docId) {
         navigate(`/documents/${docId}`);
       } else {
         throw new Error('Document was generated, but document ID was not returned.');
       }
     } catch (err) {
-      setError(err.message || 'Failed to generate legal document draft.');
-      setStep(2);
+      setError(err.response?.data?.message || err.message || 'Failed to generate legal document draft.');
+      setIsGenerating(false);
     }
   };
 
@@ -95,22 +83,12 @@ export const DocumentGeneratorPage = () => {
             <div>
               <h1 className="font-serif-legal text-2xl font-bold text-[#2D1C13] flex items-center gap-2">
                 <FileText className="w-6 h-6 text-[#E07A5F]" />
-                Guided AI Legal Document Generator
+                Document AI
               </h1>
               <p className="text-xs text-[#70665F] mt-1">
-                Generate compliant, structured draft legal agreements tailored for Indian jurisdiction.
+                Describe the legal document you need, and our AI will draft it instantly.
               </p>
             </div>
-            
-            {step === 2 && (
-              <button
-                onClick={() => setStep(1)}
-                className="px-3.5 py-2 rounded-xl bg-white border border-[#EAE3D2] hover:bg-[#F4F1EA] text-[#2D1C13] text-xs font-bold flex items-center gap-1.5 shadow-sm"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Change Template
-              </button>
-            )}
           </div>
 
           {error && (
@@ -120,153 +98,126 @@ export const DocumentGeneratorPage = () => {
             </div>
           )}
 
-          {/* STEP 1: CHOOSE DOCUMENT TYPE */}
-          {step === 1 && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-bold text-[#70665F] uppercase tracking-wider">Select Legal Document Category</h2>
-                <span className="text-xs font-bold text-[#2D1C13]">Jurisdiction: 🇮🇳 India (IN)</span>
+          {!isGenerating ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Main Prompt Area */}
+              <div className="lg:col-span-2 space-y-6">
+                <form onSubmit={handleGenerate} className="bg-white border border-[#EAE3D2] p-6 rounded-2xl space-y-6 shadow-sm">
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#2D1C13]">Document Title</label>
+                      <input
+                        type="text"
+                        required
+                        value={docTitle}
+                        onChange={(e) => setDocTitle(e.target.value)}
+                        placeholder="e.g. Acme Corp NDA"
+                        className="w-full bg-[#FAF8F5] border border-[#EAE3D2] rounded-xl px-4 py-2.5 text-xs text-[#2D1C13] placeholder-[#A0968F] focus:outline-none focus:border-[#E07A5F] focus:ring-1 focus:ring-[#E07A5F] transition-all"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-[#2D1C13]">Governing Jurisdiction</label>
+                        <select
+                          value={jurisdiction}
+                          onChange={(e) => setJurisdiction(e.target.value)}
+                          className="w-full bg-[#FAF8F5] border border-[#EAE3D2] rounded-xl px-4 py-2.5 text-xs text-[#2D1C13] focus:outline-none focus:border-[#E07A5F] focus:ring-1 focus:ring-[#E07A5F] transition-all"
+                        >
+                          <option value="India (IN)">India (Central)</option>
+                          <option value="Maharashtra, India">Maharashtra, India</option>
+                          <option value="Karnataka, India">Karnataka, India</option>
+                          <option value="Delhi, India">Delhi, India</option>
+                          <option value="USA">United States (USA)</option>
+                          <option value="UK">United Kingdom (UK)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#2D1C13]">Document Requirements</label>
+                      <textarea
+                        required
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="Describe the document you want to draft. Include specific names, dates, amounts, and any special clauses you need..."
+                        rows={8}
+                        className="w-full bg-[#FAF8F5] border border-[#EAE3D2] rounded-xl px-4 py-3 text-sm text-[#2D1C13] placeholder-[#A0968F] focus:outline-none focus:border-[#E07A5F] focus:ring-1 focus:ring-[#E07A5F] transition-all resize-y"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-[#EAE3D2] flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={!prompt.trim() || !docTitle.trim()}
+                      className="px-6 py-3 rounded-xl bg-[#E07A5F] hover:bg-[#C85A32] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold shadow-sm flex items-center gap-2 transition-all"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Generate Draft</span>
+                    </button>
+                  </div>
+                </form>
               </div>
 
-              {loading ? (
-                <p className="text-xs text-[#70665F]">Loading document templates...</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {templates.map((tmpl) => {
-                    const IconComp = ICON_MAP[tmpl.id] || FileText;
+              {/* Quick Start Suggestions */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-[#70665F] uppercase tracking-wider">Quick Prompts</h3>
+                <div className="flex flex-col gap-3">
+                  {QUICK_PROMPTS.map((qp) => {
+                    const Icon = qp.icon;
                     return (
-                      <div
-                        key={tmpl.id}
-                        onClick={() => handleSelectType(tmpl)}
-                        className="figma-card figma-card-hover p-6 rounded-2xl cursor-pointer flex flex-col justify-between space-y-4 group"
+                      <button
+                        key={qp.id}
+                        type="button"
+                        onClick={() => handleQuickPrompt(qp)}
+                        className="text-left bg-white border border-[#EAE3D2] p-4 rounded-xl hover:border-[#E07A5F] hover:shadow-md transition-all group flex items-start gap-3"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="w-11 h-11 rounded-xl bg-[#FEF7E0] text-[#E07A5F] flex items-center justify-center border border-[#EAE3D2] group-hover:bg-[#E07A5F] group-hover:text-white transition-all">
-                            <IconComp className="w-6 h-6" />
-                          </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FAF8F5] text-[#2D1C13] border border-[#EAE3D2]">
-                            {tmpl.category}
-                          </span>
+                        <div className="w-8 h-8 rounded-lg bg-[#FEF7E0] text-[#E07A5F] flex items-center justify-center shrink-0 group-hover:bg-[#E07A5F] group-hover:text-white transition-colors">
+                          <Icon className="w-4 h-4" />
                         </div>
-
-                        <div className="space-y-1">
-                          <h3 className="font-serif-legal text-lg font-bold text-[#2D1C13] group-hover:text-[#E07A5F] transition-colors">
-                            {tmpl.name}
-                          </h3>
-                          <p className="text-xs text-[#70665F] leading-relaxed">
-                            {tmpl.description}
+                        <div>
+                          <h4 className="text-xs font-bold text-[#2D1C13] group-hover:text-[#E07A5F] transition-colors">{qp.label}</h4>
+                          <p className="text-[10px] text-[#70665F] mt-1 line-clamp-2 leading-relaxed">
+                            {qp.prompt}
                           </p>
                         </div>
-
-                        <div className="pt-2 flex items-center justify-between text-xs font-bold text-[#E07A5F] group-hover:translate-x-1 transition-transform">
-                          <span>Start Questionnaire ({tmpl.questions.length} questions)</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </div>
-                      </div>
-                    );
+                      </button>
+                    )
                   })}
                 </div>
-              )}
+
+                <div className="bg-[#FEF7E0] border border-[#EAE3D2] p-4 rounded-xl mt-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Scale className="w-4 h-4 text-[#B06000]" />
+                    <h4 className="text-xs font-bold text-[#B06000]">Legal Disclaimer</h4>
+                  </div>
+                  <p className="text-[10px] text-[#B06000]/80 leading-relaxed">
+                    Documents generated by Lexora AI are drafts and should be reviewed by a qualified legal professional before execution.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* GENERATING STATE */
+            <div className="bg-white border border-[#EAE3D2] p-16 rounded-2xl text-center space-y-6 shadow-sm max-w-2xl mx-auto mt-12">
+              <div className="relative w-20 h-20 mx-auto">
+                <div className="absolute inset-0 border-4 border-[#F4F1EA] rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-[#E07A5F] rounded-full border-t-transparent animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center text-[#E07A5F]">
+                  <Sparkles className="w-8 h-8 animate-pulse" />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-serif-legal text-2xl font-bold text-[#2D1C13] mb-2">Drafting your document...</h3>
+                <p className="text-sm text-[#70665F] max-w-sm mx-auto leading-relaxed">
+                  Our Senior Advocate AI is structuring the clauses and verifying jurisdiction compliance. This usually takes about 10-15 seconds.
+                </p>
+              </div>
             </div>
           )}
-
-          {/* STEP 2: GUIDED QUESTIONNAIRE */}
-          {step === 2 && selectedType && (
-            <form onSubmit={handleGenerate} className="bg-white border border-[#EAE3D2] p-6 rounded-2xl space-y-6 shadow-sm">
-              
-              <div className="flex items-center justify-between border-b border-[#EAE3D2] pb-4">
-                <div>
-                  <h2 className="font-serif-legal text-xl font-bold text-[#2D1C13]">{selectedType.name}</h2>
-                  <p className="text-xs text-[#70665F]">Answer simple human-language questions to assemble approved Indian legal clauses.</p>
-                </div>
-                <span className="px-3 py-1 text-xs font-bold bg-[#FEF7E0] text-[#B06000] border border-[#EAE3D2] rounded-lg">
-                  {selectedType.id}
-                </span>
-              </div>
-
-              {/* Document Title */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#2D1C13]">Document Title</label>
-                <input
-                  type="text"
-                  required
-                  value={docTitle}
-                  onChange={(e) => setDocTitle(e.target.value)}
-                  className="w-full bg-[#FAF8F5] border border-[#EAE3D2] rounded-xl px-4 py-2.5 text-xs text-[#2D1C13] focus:outline-none focus:border-[#E07A5F]"
-                />
-              </div>
-
-              {/* Questions Loop */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedType.questions.map((q) => {
-                  if (q.condition) {
-                    const parentVal = answers[q.condition.field];
-                    if (parentVal !== q.condition.value) return null;
-                  }
-
-                  return (
-                    <div key={q.id} className="space-y-1.5">
-                      <label className="text-xs font-bold text-[#2D1C13]">
-                        {q.label} {q.required && <span className="text-[#E07A5F]">*</span>}
-                      </label>
-
-                      {q.type === 'select' ? (
-                        <select
-                          required={q.required}
-                          value={answers[q.id] || ''}
-                          onChange={(e) => handleInputChange(q.id, e.target.value)}
-                          className="w-full bg-[#FAF8F5] border border-[#EAE3D2] rounded-xl px-3.5 py-2.5 text-xs text-[#2D1C13] focus:outline-none focus:border-[#E07A5F]"
-                        >
-                          <option value="">Select option...</option>
-                          {q.options.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={q.type}
-                          required={q.required}
-                          value={answers[q.id] || ''}
-                          onChange={(e) => handleInputChange(q.id, e.target.value)}
-                          placeholder={q.placeholder || ''}
-                          className="w-full bg-[#FAF8F5] border border-[#EAE3D2] rounded-xl px-3.5 py-2.5 text-xs text-[#2D1C13] placeholder-[#70665F] focus:outline-none focus:border-[#E07A5F]"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="pt-4 border-t border-[#EAE3D2] flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-[#70665F]">
-                  <ShieldCheck className="w-4 h-4 text-[#E07A5F]" />
-                  <span>Approved Indian Legal Clauses & Schema Validation</span>
-                </div>
-                <button
-                  type="submit"
-                  className="px-6 py-3 rounded-xl bg-[#E07A5F] hover:bg-[#C85A32] text-white text-xs font-semibold shadow-sm flex items-center gap-2 transition-all"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Generate Legal Draft</span>
-                </button>
-              </div>
-
-            </form>
-          )}
-
-          {/* STEP 3: GENERATING LOADING STATE */}
-          {step === 3 && (
-            <div className="bg-white border border-[#EAE3D2] p-12 rounded-2xl text-center space-y-4 shadow-sm">
-              <div className="w-12 h-12 rounded-full bg-[#FEF7E0] text-[#E07A5F] flex items-center justify-center mx-auto animate-spin">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <h3 className="font-serif-legal text-xl font-bold text-[#2D1C13]">Generating Legal Contract Draft...</h3>
-              <p className="text-xs text-[#70665F] max-w-sm mx-auto">
-                Assembling approved clauses, applying Indian legal standards, and indexing document for grounded AI Q&A.
-              </p>
-            </div>
-          )}
-
         </main>
       </div>
     </div>
