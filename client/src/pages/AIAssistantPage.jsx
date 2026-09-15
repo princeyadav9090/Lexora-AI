@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Bot, 
-  Send, 
-  FileText, 
-  Sparkles, 
-  HelpCircle, 
-  BookOpen, 
-  ChevronDown, 
-  ShieldCheck, 
+import {
+  Bot,
+  Send,
+  FileText,
+  Sparkles,
+  HelpCircle,
+  BookOpen,
+  ChevronDown,
+  ShieldCheck,
   AlertCircle,
   Plus,
   Zap,
@@ -36,7 +36,7 @@ const FormattedMessage = ({ content }) => {
   if (!content) return null;
 
   const lines = content.split('\n');
-  
+
   return (
     <div className="space-y-2 text-[#2D1C13] text-xs sm:text-sm leading-relaxed font-sans">
       {lines.map((line, lineIdx) => {
@@ -256,8 +256,8 @@ export const AIAssistantPage = () => {
 
       const res = await api.sendMessage(currentConvId, textToSend);
       setMessages(prev => [
-        ...prev.filter(m => m !== tempUserMsg), 
-        { sender: 'USER', content: textToSend }, 
+        ...prev.filter(m => m !== tempUserMsg),
+        { sender: 'USER', content: textToSend },
         res.message
       ]);
     } catch (err) {
@@ -342,7 +342,7 @@ export const AIAssistantPage = () => {
         <Sidebar />
 
         <div className="flex-1 flex overflow-hidden">
-          
+
           {/* ========================================== */}
           {/* LEFT CONVERSATION HISTORY DRAWER / SIDEBAR */}
           {/* ========================================== */}
@@ -386,7 +386,7 @@ export const AIAssistantPage = () => {
                                 isActive
                                   ? 'bg-[#FEF7E0] border border-[#EAE3D2] text-[#2D1C13] font-bold shadow-xs'
                                   : 'text-[#70665F] hover:bg-[#FAF8F5] hover:text-[#2D1C13]'
-                              }`}
+                                }`}
                             >
                               <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#E07A5F]' : 'text-[#70665F]'}`} />
                               <span className="truncate flex-1">{conv.title || 'Legal Chat'}</span>
@@ -420,10 +420,10 @@ export const AIAssistantPage = () => {
           {/* MAIN MODERN CHAT CONSOLE AREA */}
           {/* ========================================== */}
           <main className="flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#FAF8F5]">
-            
+
             {/* TOP MODEL & CONTEXT HEADER */}
             <header className="bg-white/90 backdrop-blur-md border-b border-[#EAE3D2] px-6 py-3.5 flex items-center justify-between shrink-0 shadow-xs z-10">
-              
+
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
@@ -450,7 +450,7 @@ export const AIAssistantPage = () => {
 
               {/* RIGHT CONTEXT CONTROLS */}
               <div className="flex items-center gap-2">
-                
+
                 {/* Document Selector Pill */}
                 <div className="relative">
                   <select
@@ -485,15 +485,15 @@ export const AIAssistantPage = () => {
 
             {/* CHAT MESSAGES CONTAINER (ChatGPT / Gemini Centered Layout) */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-6">
-              
+
               <div className="max-w-4xl mx-auto space-y-6">
-                
+
                 {messages.length === 0 ? (
-                  
+
                   /* ========================================== */
                   /* HERO INITIAL STATE (CHATGPT/GEMINI STYLE) */
                   /* ========================================== */
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
@@ -555,7 +555,7 @@ export const AIAssistantPage = () => {
                   </motion.div>
 
                 ) : (
-                  
+
                   /* ========================================== */
                   /* MESSAGES THREAD (CHATGPT/GEMINI STREAM) */
                   /* ========================================== */
@@ -575,14 +575,13 @@ export const AIAssistantPage = () => {
                         )}
 
                         <div className={`space-y-2 max-w-2xl ${isUser ? 'items-end' : 'items-start'}`}>
-                          
+
                           {/* Message Bubble Card */}
-                          <div className={`p-4 sm:p-5 rounded-2xl text-xs leading-relaxed shadow-xs transition-all ${
-                            isUser
+                          <div className={`p-4 sm:p-5 rounded-2xl text-xs leading-relaxed shadow-xs transition-all ${isUser
                               ? 'bg-[#2D1C13] text-white rounded-tr-none font-medium'
                               : 'bg-white border border-[#EAE3D2] text-[#2D1C13] rounded-tl-none shadow-sm'
-                          }`}>
-                            
+                            }`}>
+
                             {!isUser && (
                               <div className="flex items-center justify-between border-b border-[#EAE3D2] pb-2 mb-3 text-[10px] font-bold text-[#E07A5F]">
                                 <span className="flex items-center gap-1.5">
@@ -668,7 +667,7 @@ export const AIAssistantPage = () => {
 
                 {/* TYPING / THINKING STATE */}
                 {loading && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="flex gap-3 items-start max-w-2xl"
@@ -700,9 +699,9 @@ export const AIAssistantPage = () => {
             {/* ========================================== */}
             <div className="p-4 sm:p-6 pt-2 shrink-0 bg-gradient-to-t from-[#FAF8F5] via-[#FAF8F5] to-transparent">
               <div className="max-w-4xl mx-auto space-y-2">
-                
+
                 <div className="bg-white border border-[#EAE3D2] p-2.5 sm:p-3 rounded-2xl shadow-lg focus-within:border-[#E07A5F] focus-within:ring-2 focus-within:ring-[#E07A5F]/20 transition-all flex flex-col gap-2">
-                  
+
                   {/* Context Badge Pill inside Input Bar */}
                   {selectedDocId && (
                     <div className="flex items-center justify-between bg-[#FEF7E0] border border-[#EAE3D2] px-3 py-1 rounded-xl text-[11px] font-bold text-[#B06000]">
@@ -733,8 +732,8 @@ export const AIAssistantPage = () => {
                         }
                       }}
                       placeholder={
-                        selectedDocId 
-                          ? `Ask any question about ${selectedDocObj?.title}...` 
+                        selectedDocId
+                          ? `Ask any question about ${selectedDocObj?.title}...`
                           : 'Ask Lexora any legal question under Indian law...'
                       }
                       className="flex-1 bg-transparent border-0 px-2 py-1 text-xs sm:text-sm text-[#2D1C13] placeholder-[#70665F] focus:outline-none resize-none max-h-32 font-sans"
@@ -781,8 +780,8 @@ export const AIAssistantPage = () => {
                   <Zap className="w-5 h-5 text-[#E07A5F] fill-current" />
                   Plain-Language Legal Clause Simplifier
                 </h3>
-                <button 
-                  onClick={() => setExplainModalOpen(false)} 
+                <button
+                  onClick={() => setExplainModalOpen(false)}
                   className="p-1 rounded-lg hover:bg-[#FAF8F5] text-[#70665F] hover:text-[#2D1C13]"
                 >
                   <X className="w-5 h-5" />
@@ -799,8 +798,8 @@ export const AIAssistantPage = () => {
                   placeholder="e.g. The Receiving Party agrees to indemnify and hold harmless the Disclosing Party against any losses..."
                   className="w-full bg-[#FAF8F5] border border-[#EAE3D2] rounded-xl p-3.5 text-xs text-[#2D1C13] focus:outline-none focus:border-[#E07A5F]"
                 />
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={clauseLoading || !clauseInput.trim()}
                   className="w-full py-3 rounded-xl bg-[#2D1C13] hover:bg-[#1A110B] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm"
                 >
@@ -824,7 +823,7 @@ export const AIAssistantPage = () => {
                     <Sparkles className="w-3.5 h-3.5" /> Simplified Plain-Language Explanation:
                   </p>
                   <p className="text-[#2D1C13] leading-relaxed font-medium">{clauseResult.simplifiedExplanation}</p>
-                  
+
                   {clauseResult.keyObligations && clauseResult.keyObligations.length > 0 && (
                     <div>
                       <p className="font-bold text-[#2D1C13] pt-1">Key Obligations:</p>
