@@ -23,12 +23,14 @@ import {
   Paperclip,
   ArrowUpRight,
   User,
-  Scale
+  Scale,
+  Mic
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
 import { LegalDisclaimer } from '../components/LegalDisclaimer';
 import { api } from '../services/api';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 // Helper component for markdown-like rich text rendering
 const FormattedMessage = ({ content }) => {
@@ -126,6 +128,10 @@ export const AIAssistantPage = () => {
 
   const chatEndRef = useRef(null);
   const textareaRef = useRef(null);
+
+  const { isListening, toggleListening, error: voiceError } = useSpeechRecognition((text) => {
+    setInputQuery(text);
+  });
 
   useEffect(() => {
     loadInitialData();
@@ -707,12 +713,31 @@ export const AIAssistantPage = () => {
                         }
                       }}
                       placeholder={
-                        selectedDocId 
-                          ? `Ask any question about ${selectedDocObj?.title}...` 
-                          : 'Ask Lexora any legal question under Indian law...'
+                        isListening
+                          ? 'Listening... Speak your question now'
+                          : selectedDocId 
+                            ? `Ask any question about ${selectedDocObj?.title}...` 
+                            : 'Ask Lexora any legal question under Indian law...'
                       }
                       className="flex-1 bg-transparent border-0 px-2 py-1 text-xs sm:text-sm text-[#2D1C13] placeholder-[#70665F] focus:outline-none resize-none max-h-32 font-sans"
                     />
+
+                    {/* Mic Voice Dictation Button */}
+                    <button
+                      type="button"
+                      onClick={toggleListening}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all relative shrink-0 ${
+                        isListening
+                          ? 'bg-[#FEF7E0] text-[#E07A5F] border border-[#EAE3D2] scale-105'
+                          : 'bg-[#FAF8F5] text-[#70665F] hover:text-[#E07A5F] border border-[#EAE3D2]'
+                      }`}
+                      title={isListening ? 'Stop Listening' : 'Voice Input'}
+                    >
+                      <Mic className="w-4 h-4" />
+                      {isListening && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#E07A5F] animate-ping" />
+                      )}
+                    </button>
 
                     <button
                       onClick={() => handleSendMessage()}
@@ -723,6 +748,19 @@ export const AIAssistantPage = () => {
                       <Send className="w-4 h-4" />
                     </button>
                   </div>
+
+                  {isListening && (
+                    <div className="text-[11px] font-bold text-[#E07A5F] flex items-center justify-center gap-2 animate-pulse pt-1">
+                      <span className="w-2 h-2 rounded-full bg-[#E07A5F]"></span>
+                      <span>Listening to your voice... Speak your legal prompt</span>
+                    </div>
+                  )}
+
+                  {voiceError && (
+                    <div className="text-[11px] text-red-600 bg-red-50 p-2 rounded-xl border border-red-200 text-center">
+                      {voiceError}
+                    </div>
+                  )}
 
                 </div>
 
