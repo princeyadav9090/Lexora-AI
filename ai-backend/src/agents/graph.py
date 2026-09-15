@@ -8,10 +8,11 @@ from src.services.embedder import EmbedderService
 from src.services.hybrid_retriever import HybridRetriever
 
 class IntakeAnalysis(BaseModel):
+    """Schema for extracting facts, legal issues, and jurisdictions from user intake."""
     is_complete: bool = Field(description="True if all critical facts (who, what, when, where) are present. False if important details are missing.")
     missing_questions: str = Field(description="If is_complete is False, ask a clear clarifying question to the user. Otherwise, leave empty.")
-    issues: List[str] = Field(description="The extracted core legal issues and conceptual scenarios.")
-    jurisdictions: List[str] = Field(description="List of states or cities mentioned in the facts (e.g., ['Maharashtra', 'Delhi']).")
+    issues_str: str = Field(description="Comma separated list of extracted core legal issues and conceptual scenarios.")
+    jurisdictions_str: str = Field(description="Comma separated list of states or cities mentioned in the facts (e.g., 'Maharashtra, Delhi').")
     conflict_of_laws: bool = Field(description="True if multiple jurisdictions are involved, indicating a potential conflict of laws.")
 
 def junior_lawyer_node(state: ResearchState) -> ResearchState:
@@ -40,13 +41,27 @@ Conversation History:
 """
     
     print("Junior Lawyer analyzing case facts...")
-    result = structured_llm.invoke(prompt)
+    raw_result = structured_llm.invoke(prompt)
     
+    # Handle langchain-google-genai returning list of tool call dicts instead of Pydantic object
+    if isinstance(raw_result, list) and len(raw_result) > 0:
+        if isinstance(raw_result[0], dict) and 'args' in raw_result[0]:
+            result = IntakeAnalysis(**raw_result[0]['args'])
+        else:
+            result = raw_result[0]
+    elif isinstance(raw_result, dict) and 'args' in raw_result:
+        result = IntakeAnalysis(**raw_result['args'])
+    else:
+        result = raw_result
+        
+    issues_list = [i.strip() for i in result.issues_str.split(",") if i.strip()] if result.issues_str else []
+    jurisdictions_list = [j.strip() for j in result.jurisdictions_str.split(",") if j.strip()] if result.jurisdictions_str else []
+
     return {
         "is_fact_gathering_complete": result.is_complete,
         "missing_information": result.missing_questions,
-        "extracted_issues": result.issues,
-        "jurisdictions": result.jurisdictions,
+        "extracted_issues": issues_list,
+        "jurisdictions": jurisdictions_list,
         "conflict_of_laws": result.conflict_of_laws
     }
 

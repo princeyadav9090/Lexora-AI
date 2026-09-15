@@ -74,4 +74,6 @@ async def analyze_legal_query(request: ResearchQuery):
             counterarguments=restored_counterarguments
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

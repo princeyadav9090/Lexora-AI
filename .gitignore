@@ -19,7 +19,7 @@ COST_PLAN.md
 DEVELOPMENT_GUIDELINES.md
 DECISIONS.md
 phases/
-
+node_modules
 # Python
 __pycache__/
 *.py[cod]

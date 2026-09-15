@@ -95,33 +95,23 @@ export const queryDocumentRAG = async (userId, documentId, userQuestion) => {
     score: computeRelevanceScore(userQuestion, chunk.content)
   })).sort((a, b) => b.score - a.score);
 
-  const topChunk = scoredChunks[0];
-
-  // Insufficient evidence guardrail
-  if (!topChunk || topChunk.score < 1) {
-    return {
-      answer: "I couldn't find enough information in the selected document to answer that reliably.",
-      explanation: "The query topic does not appear to be explicitly mentioned in the clauses of this contract.",
-      relevantClause: "No matching clause found.",
-      sourceCitation: `${document.title}`
-    };
-  }
+  const topChunks = scoredChunks.slice(0, 3);
+  const topChunk = topChunks[0];
+  const contextText = topChunks.map(c => `Section: ${c.section || 'General'}\nPage: ${c.pageNumber || 1}\nContent: ${c.content}`).join('\n\n');
 
   // If Gemini API is available, generate grounded LLM answer
   if (genAI) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
       const prompt = `You are Lexora AI, a grounded legal assistant.
 You are given a question and a verified excerpt from a legal contract.
 Answer ONLY based on the excerpt below. If the excerpt does NOT contain the answer, say "I couldn't find enough information in the selected document to answer that reliably."
 
 Document: ${document.title}
-Section: ${topChunk.section || 'General Clause'}
-Page: ${topChunk.pageNumber || 1}
 
-Excerpt:
+Excerpts:
 """
-${topChunk.content}
+${contextText}
 """
 
 User Question: ${userQuestion}
@@ -159,7 +149,7 @@ const aiBackendUrl = process.env.AI_BACKEND_URL || 'http://127.0.0.1:8000';
 // General Legal Educational QA - Delegated to Python AI Backend (LangGraph)
 export const queryGeneralLegalAI = async (messages, vaultId = null) => {
   try {
-    const response = await fetch(`${aiBackendUrl}/analyze`, {
+    const response = await fetch(`${aiBackendUrl}/api/v1/research/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, vault_id: vaultId })
@@ -215,6 +205,29 @@ export const queryGeneralLegalAI = async (messages, vaultId = null) => {
 
 // Clause Explainer
 export const explainClause = async (clauseText) => {
+  if (genAI) {
+    try {
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+      const prompt = `You are Lexora AI. Explain the following legal clause in simple, plain language.
+Clause: "${clauseText}"
+
+Return ONLY a valid JSON object with exactly this structure:
+{
+  "originalClause": "the clause text",
+  "simplifiedExplanation": "A 1-2 sentence plain-language explanation of what this means.",
+  "keyObligations": ["bullet point 1", "bullet point 2"]
+}`;
+      const result = await model.generateContent(prompt);
+      const textResp = result.response.text();
+      const jsonMatch = textResp.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.warn('Explain Clause fallback:', e.message);
+    }
+  }
+
   return {
     originalClause: clauseText,
     simplifiedExplanation: `This clause means: You are agreeing that the terms defined here apply strictly as stated. If either party breaks this requirement, legal remedies or monetary penalties may apply under Indian law.`,

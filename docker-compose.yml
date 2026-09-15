@@ -21,26 +21,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/lexora
       - QDRANT_URL=http://qdrant:6333
       - NEO4J_URI=bolt://neo4j:7687
     env_file:
       - ./ai-backend/.env
     depends_on:
-      - postgres
       - qdrant
       - neo4j
 
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: lexora
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -61,6 +49,5 @@ services:
       - neo4j_data:/data
 
 volumes:
-  postgres_data:
   qdrant_data:
   neo4j_data:
