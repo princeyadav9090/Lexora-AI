@@ -1,0 +1,26 @@
+[
+  {
+    "statute_id": "IPC_420",
+    "act_name": "Indian Penal Code, 1860",
+    "chapter": "Chapter XVII",
+    "section_number": "420",
+    "section_title": "Cheating and dishonestly inducing delivery of property",
+    "text": "Whoever cheats and thereby dishonestly induces the person deceived to deliver any property to any person, or to make, alter or destroy the whole or any part of a valuable security, or anything which is signed or sealed, and which is capable of being converted into a valuable security, shall be punished with imprisonment of either description for a term which may extend to seven years, and shall also be liable to fine."
+  },
+  {
+    "statute_id": "IPC_378",
+    "act_name": "Indian Penal Code, 1860",
+    "chapter": "Chapter XVII",
+    "section_number": "378",
+    "section_title": "Theft",
+    "text": "Whoever, intending to take dishonestly any movable property out of the possession of any person without that person’s consent, moves that property in order to such taking, is said to commit theft."
+  },
+  {
+    "statute_id": "IPC_300",
+    "act_name": "Indian Penal Code, 1860",
+    "chapter": "Chapter XVI",
+    "section_number": "300",
+    "section_title": "Murder",
+    "text": "Except in the cases hereinafter excepted, culpable homicide is murder, if the act by which the death is caused is done with the intention of causing death, or if it is done with the intention of causing such bodily injury as the offender knows to be likely to cause the death of the person to whom the harm is caused."
+  }
+]
