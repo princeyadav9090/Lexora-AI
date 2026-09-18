@@ -46,3 +46,6 @@ See `ROADMAP.md` and the `phases/` directory for a detailed, phase-by-phase brea
 ## ⚠️ Legal & Safety Disclaimer
 **Lexora-AI is an AI-assisted research tool, NOT a replacement for a licensed advocate.**
 This software does not provide legally binding advice, guarantee legal outcomes, or predict court decisions with certainty. It is built as an academic final-year project to demonstrate advanced ML/NLP applications in the legal domain. Users should always consult a qualified legal professional for actual legal matters.
+
+Copyright © 2026 [Lexora-AI]. All rights reserved.
+This software and its documentation are confidential and proprietary. Unauthorized copying, distribution, or modification of this project via any medium is strictly prohibited.
